@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+
+<body>
+
+  <script>
+
+    function makeData(width, height, types, fillPercent) {
+		var data = [];
+		for (var i = 0; i < width; i++) {
+			data[i] = Array.from({length: height}, () => Math.random() > fillPercent ? 0 : Math.floor(Math.random() * types + 1));
+		}
+
+		return data;
+    }
+
+    function getMatches(data, x, y) {
+    	if (data[x][y] != 0) {
+    		// Must click empty space
+    		return null;
+    	}
+    	// 4 cardinal directions: (0,-1) (1,0) (0,1) (-1,0)
+    	for (var coord = 0; coord <= 1; coord++) {
+    		for (var i = 1; i >= -1; i -= 2) {
+    			var dx = coord == 0 ? i : 0;
+    			var dy = coord == 1 ? i : 0;
+    			var curX = x;
+    			var curY = y;
+    			// Collect neighboring tile coordinates
+    			var neighbors = [];
+    			while (curX < data.length && curX >= 0 && curY < data[curX].length && curY >= 0) { // bounds
+    				if (data[curX][curY] != 0) {
+						neighbors.push([curX, curY])
+    				}
+    				curX += dx;
+    				curY += dy;
+    			}
+    		}
+    	}
+    	// ID coords whose values match another in the set
+		var typeMap = [];
+		typeMap.fill([]);
+		neighbors.forEach((neighbor) => typeMap[data[neighbor[0]][neighbor[1]]].push(neighbor));
+
+		var output = [];
+		typeMap.forEach((typeList) => if (typeList.length > 1) {[].push.apply(output, typeList)});
+		return output;
+    }
+
+    alert( 'Hello, world!' + makeData(23, 15, 10, 0.5));
+  </script>
+
+  <p>COPY</p>
+
+</body>
+
+</html>

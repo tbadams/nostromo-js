@@ -1,0 +1,102 @@
+<script src="buckets.js"></script>
+<script>
+"use strict"
+
+    function loadJSON(callback) {
+        var xobj = new XMLHttpRequest();
+        xobj.overrideMimeType("application/json");
+        xobj.open('GET', 'http://localhost:8080/nostromo.json', true);
+        xobj.onreadystatechange = function () {
+            if (xobj.readyState == 4 && xobj.status == "200") {
+                callback(xobj.responseText);
+            }
+        };
+        xobj.send(null);
+    }
+ 
+
+    loadJSON(function(response) {
+        var gameData = JSON.parse(response);
+        init(gameData);
+        while(true) {
+            gameLoop(gameData);
+        }
+    });
+
+    function init(gameData) {
+        var rooms = {};
+        validateDoors(gameData.doors);
+        for(let door of gameData.doors) {
+            door.other = function(roomName) {
+                if (this.rooms[0] === roomName) {
+                    return this.rooms[1];
+                }
+                if (this.rooms[1] === roomName) {
+                    return this.rooms[0];
+                }
+                Error("room not in doors");
+            }
+            for (let roomName of door.rooms) {
+                if (!rooms.hasOwnProperty(roomName)) {
+                    rooms[roomName] = {
+                        name:roomName,
+                        doors:[]};
+                }
+                rooms[roomName].doors.push(door);
+            }
+        }
+        // TODO check graph connected
+        document.write("data:" + JSON.stringify(gameData));
+
+        var actors = gameData.actors;
+        document.write(JSON.stringify(actors));
+        var ai = [];
+        var players = [];
+        for (let actor of actors) {
+            if (actor.ai === "player") {
+                players.push(actor);
+            } else {
+                // TODO Validate
+                ai.push(actor);
+            }
+        }
+
+        var items = [];
+
+        var scheduler = buckets.PriorityQueue(function(a, b){
+            // TODO unit test
+            return b.priority - a.priority;
+        });
+        gameData.scheduler = scheduler;
+
+    }
+
+    function gameLoop(gameData) {
+        // TODO cleanup, maintenance (?)
+        // TODO handle input
+        document.write("time:" + gameData.time);
+        var eventBus = []
+        var scheduler = gameData.scheduler;
+        while (!scheduler.isEmpty() && scheduler.peek() >= gameData.time) {
+            eventBus.push(scheduler.dequeue());
+        }
+        for (let event of eventBus) {
+            // TODO DO IT
+        }
+
+
+       gameData.time = gameData.time + 1;
+
+    }
+
+    function validateDoors(doors) {
+        for (let door of doors) {
+            if (door.rooms.length != 2) {
+                Error("door with " + rooms.length + " rooms");
+            }
+        }
+    }
+
+
+    //alert( 'Hello, world!' + makeData(23, 15, 10, 0.5));
+  </script>
