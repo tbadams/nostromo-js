@@ -18,9 +18,9 @@
     loadJSON(function(response) {
         var gameData = JSON.parse(response);
         init(gameData);
-        while(true) {
-            gameLoop(gameData);
-        }
+        // while(true) {
+        //     gameLoop(gameData);
+        // }
     });
 
     function init(gameData) {
@@ -46,7 +46,7 @@
             }
         }
         // TODO check graph connected
-        document.write("data:" + JSON.stringify(gameData));
+        // document.write("data:" + JSON.stringify(gameData));
 
         var actors = gameData.actors;
         document.write(JSON.stringify(actors));

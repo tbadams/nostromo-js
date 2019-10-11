@@ -1,6 +1,6 @@
 {
     "doors":[
-        {"rooms":[dasda
+        {"rooms":[
             "bridge",
             "corridor1"
             ]
@@ -265,7 +265,7 @@
         {
             "name":"cat",
             "ai":"cat"
-        }fsafsfs
+        }
     ],
 
     "defs":{
