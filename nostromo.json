@@ -259,12 +259,17 @@
             "location":"bridge"
         },
         {
-            "name":"alien",
-            "ai":"classic"
+            "name":"Alien",
+            "ai":"classic",
+            "inventory":0,
+            "location":"shuttle bay"
         },
         {
-            "name":"cat",
-            "ai":"cat"
+            "name":"Cat",
+            "ai":"wander",
+            "inventory":0,
+            "small":true,
+            "location":"corridor2"
         }
     ],
 

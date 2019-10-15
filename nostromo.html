@@ -2,6 +2,10 @@
 <script>
 "use strict"
 
+const TICK_LENGTH = 1000;
+const ACTION_MOVE = "move";
+const AI_PLAYER = "player";
+
     function loadJSON(callback) {
         var xobj = new XMLHttpRequest();
         xobj.overrideMimeType("application/json");
@@ -18,13 +22,12 @@
     loadJSON(function(response) {
         var gameData = JSON.parse(response);
         init(gameData);
-        // while(true) {
-        //     gameLoop(gameData);
-        // }
+        setInterval(function () {
+            gameLoop(gameData);
+        }, TICK_LENGTH)
     });
 
     function init(gameData) {
-        var rooms = {};
         validateDoors(gameData.doors);
         for(let door of gameData.doors) {
             door.other = function(roomName) {
@@ -34,22 +37,28 @@
                 if (this.rooms[1] === roomName) {
                     return this.rooms[0];
                 }
-                Error("room not in doors");
+               throw new Error("room <" + roomName + "> not in doors");
             }
             for (let roomName of door.rooms) {
-                if (!rooms.hasOwnProperty(roomName)) {
-                    rooms[roomName] = {
+                if (!gameData.rooms.hasOwnProperty(roomName)) {
+                    gameData.rooms[roomName] = {
                         name:roomName,
-                        doors:[]};
+                        doors:[],
+                        links(){
+                            var out = [];
+                            for (let door of this.doors) {
+                                out.push(door.other(this.name));
+                            }
+                            return out;
+                        }};
                 }
-                rooms[roomName].doors.push(door);
+                gameData.rooms[roomName].doors.push(door);
             }
         }
         // TODO check graph connected
         // document.write("data:" + JSON.stringify(gameData));
 
         var actors = gameData.actors;
-        document.write(JSON.stringify(actors));
         var ai = [];
         var players = [];
         for (let actor of actors) {
@@ -58,45 +67,116 @@
             } else {
                 // TODO Validate
                 ai.push(actor);
+
             }
+            // TODO default or require: inventory, attack
+            // TODO random location option
+            if (!actor.hasOwnProperty("location")) { // TODO call roomName for clarity
+                throw new Error("No location:" + JSON.stringify(actor));
+            } else if (!gameData.rooms.hasOwnProperty(actor.location) ){
+                throw new Error("actor location <" + actor.location + "> does not exist");
+            }
+            // TODO check name is unique
         }
 
         var items = [];
 
         var scheduler = buckets.PriorityQueue(function(a, b){
             // TODO unit test
-            return b.priority - a.priority;
+            return b.time - a.time;
         });
         gameData.scheduler = scheduler;
 
     }
 
     function gameLoop(gameData) {
-        // TODO cleanup, maintenance (?)
-        // TODO handle input
-        document.write("time:" + gameData.time);
+        
+        document.write("\ntime:" + gameData.time);
         var eventBus = []
         var scheduler = gameData.scheduler;
-        while (!scheduler.isEmpty() && scheduler.peek() >= gameData.time) {
+
+        // TODO copy gamedata
+
+        while (!scheduler.isEmpty() && scheduler.peek().time <= gameData.time) {
             eventBus.push(scheduler.dequeue());
         }
         for (let event of eventBus) {
-            // TODO DO IT
+            if (event.type === ACTION_MOVE) {
+                // TODO move
+                event.actor.location = event.target
+            }
+            document.writeln("<p>" + eventText(event, gameData) + "</p>");
         }
 
+       
+        var busyActors = scheduler.toArray().map((a)=>a.actor.name); // TODO non-actors
+        for (let actor of gameData.actors) {
+            if (!busyActors.includes(actor.name)) {
+                // AI actions
+                if (actor.ai != AI_PLAYER) {
+                    var choices = getActions(actor, gameData);
+                    // TODO Specific AIs
 
+                    takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
+
+                } else {
+                     // TODO handle input
+                }
+            }
+        }
+
+        // TODO cleanup, maintenance (?)
        gameData.time = gameData.time + 1;
 
+    }
+
+    function takeAction(actor, action, gameData) {
+        var length = 5; // TODO ??
+        action.time = gameData.time + length;
+        gameData.scheduler.enqueue(action);
     }
 
     function validateDoors(doors) {
         for (let door of doors) {
             if (door.rooms.length != 2) {
-                Error("door with " + rooms.length + " rooms");
+                throw new Error("door with " + rooms.length + " rooms");
             }
+        }
+    }
+
+    function eventText(event, gameData) {
+        var type = event.type;
+        if (type === ACTION_MOVE) {
+            return event.actor.name + " moved to " + event.target + ".";
+        }
+        return "UNHANDLED EVENT:" + JSON.stringify(event);
+    }
+
+    function getActions(actor, gameData) {
+        var out = [];
+        var room = gameData.rooms[actor.location];
+        for (let connection of room.links()) {
+            out.push(new Action(ACTION_MOVE, connection, actor));
+        }
+        return out;
+    }
+
+    class Action {
+        constructor(type, target, actor) {
+            this.type = type;
+            this.target = target;
+            this.actor = actor;
         }
     }
 
 
     //alert( 'Hello, world!' + makeData(23, 15, 10, 0.5));
   </script>
+
+  <html>
+    <head>
+    </head>
+    <body>
+        <p name="time"></p>
+    </body>
+  </html>
