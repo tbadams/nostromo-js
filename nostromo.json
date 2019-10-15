@@ -186,6 +186,18 @@
             "type":"grate"
         },
         {"rooms":[
+            "shuttle bay vent",
+            "engineering vent"
+            ],
+            "type":"vent"
+        },
+        {"rooms":[
+            "engineering vent",
+            "engineering stores vent"
+            ],
+            "type":"vent"
+        },
+        {"rooms":[
             "engineering",
             "engineering vent"
             ],
@@ -196,6 +208,12 @@
             "engineering stores vent"
             ],
             "type":"grate"
+        },
+        {"rooms":[
+            "engineering stores vent",
+            "cargopod3 vent"
+            ],
+            "type":"vent"
         },
         {"rooms":[
             "shuttle store",
@@ -218,6 +236,48 @@
         {"rooms":[
             "cargopod3",
             "cargopod3 vent"
+            ],
+            "type":"vent"
+        },
+        {
+            "rooms":[
+                "cargopod3 vent",
+                "corridor7 vent"
+            ],
+            "type":"vent"
+        },
+        {
+            "rooms":[
+                "corridor7 vent",
+                "cargopod2 vent"
+            ],
+            "type":"vent"
+        },
+                {
+            "rooms":[
+                "corridor7 vent",
+                "life support vent"
+            ],
+            "type":"vent"
+        },
+        {
+            "rooms":[
+                "cargopod1 vent",
+                "corridor7 vent"
+            ],
+            "type":"vent"
+        },
+        {
+            "rooms":[
+                "shuttle store vent",
+                "cargopod1 vent"
+            ],
+            "type":"vent"
+        },
+        {
+            "rooms":[
+                "shuttle bay vent",
+                "cargopod1 vent"
             ],
             "type":"vent"
         },
