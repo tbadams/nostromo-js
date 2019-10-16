@@ -296,9 +296,16 @@
 
     ],
     "rooms":[
-        {"id":"bridge",
-         "special":[
+        {
+            "roomName":"bridge",
+            "special":[
                 "self-destruct"
+            ]
+        },
+        {
+            "roomName":"cryo lab",
+            "special":[
+                "hypersleep"
             ]
         }
     ],
@@ -306,42 +313,71 @@
         {
             "name":"Ripley",
             "ai":"player",
-            "location":"bridge"
+            "roomName":"bridge"
         },
         {
             "name":"Parker",
             "ai":"player",
-            "location":"bridge"
+            "roomName":"bridge"
         },
         {
             "name":"Lambert",
             "ai":"player",
-            "location":"bridge"
+            "roomName":"bridge"
         },
         {
             "name":"Alien",
             "ai":"classic",
             "inventory":0,
-            "location":"shuttle bay"
+            "roomName":"shuttle bay"
         },
         {
             "name":"Cat",
             "ai":"wander",
             "inventory":0,
             "small":true,
-            "location":"corridor2"
+            "roomName":"corridor2"
         }
     ],
 
     "defs":{
         "ai":[
         ],
-        "items": {
+        "items": [
+            {
+                "name":"Laser Pistol",
+                "damage":10
+            },
+            {
+                "name":"Fire Extinguisher"
+            },
+            {
+                "name":"Spanner",
+                "damage":10,
+                "bleed":false
+            },
+            {
+                "name":"Electric Prod",
+                "damage":"??",
+                "bleed":false
+            },
+            {
+                "name":"Cat Box",
+                "cat":false
+            },
+            {
+                "name":"Harpoon Gun",
+                "damage":"iunno"
+            },
+            {
+                "name":"Motion Tracker",
+                "track":1
+            }
 
-        },
-        "special":{
+        ],
+        "special":[
 
-        }
+        ]
     },
     "time":0
 }

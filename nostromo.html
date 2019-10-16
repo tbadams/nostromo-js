@@ -71,10 +71,10 @@ const AI_PLAYER = "player";
             }
             // TODO default or require: inventory, attack
             // TODO random location option
-            if (!actor.hasOwnProperty("location")) { // TODO call roomName for clarity
+            if (!actor.hasOwnProperty("roomName")) { // TODO call roomName for clarity
                 throw new Error("No location:" + JSON.stringify(actor));
-            } else if (!gameData.rooms.hasOwnProperty(actor.location) ){
-                throw new Error("actor location <" + actor.location + "> does not exist");
+            } else if (!gameData.rooms.hasOwnProperty(actor.roomName) ){
+                throw new Error("actor location <" + actor.roomName + "> does not exist");
             }
             // TODO check name is unique
         }
@@ -103,7 +103,7 @@ const AI_PLAYER = "player";
         for (let event of eventBus) {
             if (event.type === ACTION_MOVE) {
                 // TODO move
-                event.actor.location = event.target
+                event.actor.roomName = event.target
             }
             document.writeln("<p>" + eventText(event, gameData) + "</p>");
         }
@@ -154,7 +154,7 @@ const AI_PLAYER = "player";
 
     function getActions(actor, gameData) {
         var out = [];
-        var room = gameData.rooms[actor.location];
+        var room = gameData.rooms[actor.roomName];
         for (let connection of room.links()) {
             out.push(new Action(ACTION_MOVE, connection, actor));
         }
