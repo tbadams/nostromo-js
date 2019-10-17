@@ -32,6 +32,13 @@
             "corridor4"
             ]
         },
+        {
+            "rooms":[
+                "corridor2",
+                "cargopod2"
+            ],
+            "type":"ladder"
+        },
         {"rooms":[
             "corridor3",
             "infirmary stores"
@@ -81,7 +88,7 @@
             "corridor1",
             "living quarters"
             ],
-            "type":"ladder up"
+            "type":"ladder"
 
         },
         {"rooms":[
@@ -377,7 +384,22 @@
         ],
         "special":[
 
-        ]
+        ],
+        "doors":{
+            "default":{
+                "locked":false,
+                "floorChange":false
+            },
+            "grate":{
+                "locked":true
+            },
+            "vent":{
+
+            },
+            "ladder":{
+                "floorChange":true
+            }
+        }
     },
     "time":0
 }
