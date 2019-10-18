@@ -1,3 +1,13 @@
+<html>
+  <head>
+      <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+      <p id="time">Time:0</p>
+      <p id="events" ></p>
+  </body>
+</html>
+
 <script src="buckets.js"></script>
 <script>
 "use strict"
@@ -8,6 +18,7 @@ const ACTION_UNLOCK = "unlock";
 const AI_PLAYER = "player";
 const DEF_DEFAULT = "default";
 const DEF_TYPE = "type";
+
 
     function loadJSON(callback) {
         var xobj = new XMLHttpRequest();
@@ -20,7 +31,7 @@ const DEF_TYPE = "type";
         };
         xobj.send(null);
     }
- 
+
 
     loadJSON(function(response) {
         var gameData = JSON.parse(response);
@@ -87,8 +98,7 @@ const DEF_TYPE = "type";
     }
 
     function gameLoop(gameData) {
-        
-        // document.write("\ntime:" + gameData.time);
+        document.getElementById("time").innerHTML = ("Time:" + gameData.time);
         var eventBus = []
         var scheduler = gameData.scheduler;
 
@@ -124,6 +134,16 @@ const DEF_TYPE = "type";
 
     }
 
+    function handleAction(event, gameData) {
+        if (event.type === ACTION_MOVE) {
+            event.actor.roomName = event.target
+        } else if (event.type === ACTION_UNLOCK) {
+            event.target.locked = false;
+        }
+        var log = document.getElementById("events");
+        log.innerHTML= log.innerHTML + (eventText(event, gameData) + "<br/>");
+    }
+
     function takeAction(actor, action, gameData) { // todo rename queue
         var length = 5; // TODO ??
         action.time = gameData.time + length;
@@ -154,15 +174,6 @@ const DEF_TYPE = "type";
         return out;
     }
 
-    function handleAction(event, gameData) {
-        if (event.type === ACTION_MOVE) {
-            event.actor.roomName = event.target
-        } else if (event.type === ACTION_UNLOCK) {
-            event.target.locked = false;
-        }
-        document.writeln(eventText(event, gameData) + "<br/>");
-    }
-
     function initGameData(gameData) {
         gameData.getDef = function(defType, defName) {
             if(gameData.defs.hasOwnProperty(defType)) {
@@ -170,7 +181,7 @@ const DEF_TYPE = "type";
                 if (defs.hasOwnProperty(defName)) {
                     return gameData.defs[defType];
                 }
-                
+
             }
             throw Error("No defs type '" + defType + "'.")
         }
@@ -223,18 +234,9 @@ const DEF_TYPE = "type";
 
         toString() {
             return "Door[" + this.rooms[0] + "/" + this.rooms[1] + "]";
-        }       
+        }
     }
 
 
     //alert( 'Hello, world!' + makeData(23, 15, 10, 0.5));
   </script>
-
-  <html>
-    <head>
-        <link rel="stylesheet" href="styles.css">
-    </head>
-    <body>
-        <p name="time"></p>
-    </body>
-  </html>
