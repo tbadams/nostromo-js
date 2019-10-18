@@ -4,6 +4,7 @@
 
 const TICK_LENGTH = 1000;
 const ACTION_MOVE = "move";
+const ACTION_UNLOCK = "unlock";
 const AI_PLAYER = "player";
 const DEF_DEFAULT = "default";
 const DEF_TYPE = "type";
@@ -108,11 +109,7 @@ const DEF_TYPE = "type";
             eventBus.push(scheduler.dequeue());
         }
         for (let event of eventBus) {
-            if (event.type === ACTION_MOVE) {
-                // TODO move
-                event.actor.roomName = event.target
-            }
-            document.writeln("<p>" + eventText(event, gameData) + "</p>");
+            handleAction(event, gameData);
         }
 
        // Queue new actions
@@ -137,7 +134,7 @@ const DEF_TYPE = "type";
 
     }
 
-    function takeAction(actor, action, gameData) {
+    function takeAction(actor, action, gameData) { // todo rename queue
         var length = 5; // TODO ??
         action.time = gameData.time + length;
         gameData.scheduler.enqueue(action);
@@ -162,11 +159,23 @@ const DEF_TYPE = "type";
     function getActions(actor, gameData) {
         var out = [];
         var room = gameData.rooms[actor.roomName];
-        for (let connection of room.links()) {
-            if ()
-            out.push(new Action(ACTION_MOVE, connection, actor));
+        for (let door of room.doors) {
+            if (!door.locked) {
+                out.push(new Action(ACTION_MOVE, door.other(room.name), actor));
+            } else {
+                out.push(new Action(ACTION_UNLOCK, door, actor));
+            }
         }
         return out;
+    }
+
+    function handleAction(event, gameData) {
+        if (event.type === ACTION_MOVE) {
+            event.actor.roomName = event.target
+        } else if (event.type === ACTION_UNLOCK) {
+            event.target.locked = false;
+        }
+        document.writeln("<p>" + eventText(event, gameData) + "</p>");
     }
 
     function initGameData(gameData) {
@@ -194,9 +203,16 @@ const DEF_TYPE = "type";
 
         constructor(json, typeDefs) {
             // Assign characteristics hierarchically
-            Object.assign(this, typeDefs[DEF_DEFAULT]); // Type default
+            if (typeDefs.hasOwnProperty(DEF_DEFAULT)) {  // Type default
+                Object.assign(this, typeDefs[DEF_DEFAULT]);
+            }
             if (json.hasOwnProperty(DEF_TYPE)) { // Specific type
-                Object.assign(this, typeDefs[json[DEF_TYPE]]);
+                var jsonType = json[DEF_TYPE];
+                if (typeDefs.hasOwnProperty(jsonType)) {
+                    Object.assign(this, typeDefs[jsonType]);
+                } else {
+                    throw Error("No defined type: " + jsonType);
+                }
             }
             Object.assign(this, json); // Specific instance
         }

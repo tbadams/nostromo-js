@@ -348,43 +348,43 @@
     ],
 
     "defs":{
-        "ai":[
-        ],
-        "items": [
-            {
-                "name":"Laser Pistol",
+        "ai":{
+
+        },
+        "items": {
+            "Laser Pistol":{
                 "damage":10
             },
-            {
-                "name":"Fire Extinguisher"
+            "Fire Extinguisher":{
+                "action":"extinguish"
             },
-            {
+            "Spanner":{
                 "name":"Spanner",
-                "damage":10,
-                "bleed":false
+                "damage":10
             },
-            {
-                "name":"Electric Prod",
+            "Electric Prod":{
                 "damage":"??",
                 "bleed":false
             },
-            {
-                "name":"Cat Box",
+            "Cat Box": {
                 "cat":false
             },
-            {
-                "name":"Harpoon Gun",
+            "Harpoon Gun": {
                 "damage":"iunno"
             },
-            {
-                "name":"Motion Tracker",
+            "Motion Tracker": {
                 "track":1
             }
 
-        ],
-        "special":[
+        },
+        "special":{
+            "self-destruct":{
 
-        ],
+            },
+            "hypersleep":{
+
+            }
+        },
         "doors":{
             "default":{
                 "locked":false,
