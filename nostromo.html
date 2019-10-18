@@ -88,7 +88,7 @@ const DEF_TYPE = "type";
 
     function gameLoop(gameData) {
         
-        document.write("\ntime:" + gameData.time);
+        // document.write("\ntime:" + gameData.time);
         var eventBus = []
         var scheduler = gameData.scheduler;
 
@@ -136,7 +136,7 @@ const DEF_TYPE = "type";
             return event.actor.name + " moved to " + event.target + ".";
         }
         if (type === ACTION_UNLOCK) {
-            return event.actor.name + " unlocked " + event.target + ".";
+            return event.actor.name + " unlocked " + event.target.toString() + ".";
         }
         return "UNHANDLED EVENT:" + JSON.stringify(event);
     }
@@ -160,7 +160,7 @@ const DEF_TYPE = "type";
         } else if (event.type === ACTION_UNLOCK) {
             event.target.locked = false;
         }
-        document.writeln("<p>" + eventText(event, gameData) + "</p>");
+        document.writeln(eventText(event, gameData) + "<br/>");
     }
 
     function initGameData(gameData) {
@@ -219,6 +219,10 @@ const DEF_TYPE = "type";
                 return this.rooms[0];
             }
            throw new Error("room <" + roomName + "> not in doors");
+        }
+
+        toString() {
+            return "Door[" + this.rooms[0] + "/" + this.rooms[1] + "]";
         }       
     }
 
