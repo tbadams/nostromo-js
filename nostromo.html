@@ -32,19 +32,9 @@ const DEF_TYPE = "type";
 
     function init(gameData) {
         initGameData(gameData);
-        validateDoors(gameData.doors);
         var doorDefs = gameData.defs.doors;
         for(let i in gameData.doors) {
-            var door = new TypedClass(gameData.doors[i], doorDefs);
-            door.other = function(roomName) { // TODO declare elsewwhere
-                if (this.rooms[0] === roomName) {
-                    return this.rooms[1];
-                }
-                if (this.rooms[1] === roomName) {
-                    return this.rooms[0];
-                }
-               throw new Error("room <" + roomName + "> not in doors");
-            }
+            var door = new Door(gameData.doors[i], doorDefs);
             gameData.doors[i] = door;
 
             // create rooms
@@ -65,7 +55,6 @@ const DEF_TYPE = "type";
             }
         }
         // TODO check graph connected
-        // document.write("data:" + JSON.stringify(gameData));
 
         var actors = gameData.actors;
         var ai = [];
@@ -117,6 +106,7 @@ const DEF_TYPE = "type";
         for (let actor of gameData.actors) {
             if (!busyActors.includes(actor.name)) {
                 // AI actions
+                // TODO Different supported actions by actor
                 if (actor.ai != AI_PLAYER) {
                     var choices = getActions(actor, gameData);
                     // TODO Specific AIs
@@ -140,18 +130,13 @@ const DEF_TYPE = "type";
         gameData.scheduler.enqueue(action);
     }
 
-    function validateDoors(doors) {
-        for (let door of doors) {
-            if (door.rooms.length != 2) {
-                throw new Error("door with " + rooms.length + " rooms");
-            }
-        }
-    }
-
     function eventText(event, gameData) {
         var type = event.type;
         if (type === ACTION_MOVE) {
             return event.actor.name + " moved to " + event.target + ".";
+        }
+        if (type === ACTION_UNLOCK) {
+            return event.actor.name + " unlocked " + event.target + ".";
         }
         return "UNHANDLED EVENT:" + JSON.stringify(event);
     }
@@ -216,6 +201,25 @@ const DEF_TYPE = "type";
             }
             Object.assign(this, json); // Specific instance
         }
+    }
+
+    class Door extends TypedClass {
+        constructor(json, typeDefs) {
+            super(json, typeDefs);
+            if (this.rooms.length != 2) {
+                throw new Error("door with " + this.rooms.length + " rooms");
+            }
+        }
+
+        other(roomName) { // TODO declare elsewwhere
+            if (this.rooms[0] === roomName) {
+                return this.rooms[1];
+            }
+            if (this.rooms[1] === roomName) {
+                return this.rooms[0];
+            }
+           throw new Error("room <" + roomName + "> not in doors");
+        }       
     }
 
 
