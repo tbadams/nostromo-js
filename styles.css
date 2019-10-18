@@ -2,3 +2,42 @@ body {
   background-color: black;
   color: white;
 }
+
+* {
+  box-sizing: border-box;
+  font-family:monospace;
+}
+
+.main {
+  width: 75%;
+  height:80%;
+  float: left;
+}
+.menu {
+  width: 25%;
+  height: 80%;
+  float: left;
+  border-style: solid;
+  border-color: green;
+  border-width: medium;
+}
+.status {
+  width: 100%
+  border-style: solid;
+  border-color: green;
+  border-width: medium;
+}
+
+/* scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #111111;
+}
+::-webkit-scrollbar-thumb {
+  background: #009900;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff00;
+}

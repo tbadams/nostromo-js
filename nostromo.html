@@ -4,7 +4,15 @@
   </head>
   <body>
       <p id="time">Time:0</p>
-      <p id="events" ></p>
+
+      <div id="events" class="main" style="overflow:auto;">&nbsp;</div>
+      <div class="menu" >menu
+        <ul>
+        </ul>
+      </div>
+      <div class="status">
+        boobs&nbsp;
+      </div>
   </body>
 </html>
 
@@ -118,7 +126,7 @@ const DEF_TYPE = "type";
                 // AI actions
                 // TODO Different supported actions by actor
                 if (actor.ai != AI_PLAYER) {
-                    var choices = getActions(actor, gameData);
+                    var choices = getChoices(actor, gameData);
                     // TODO Specific AIs
 
                     takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
@@ -161,7 +169,7 @@ const DEF_TYPE = "type";
         return "UNHANDLED EVENT:" + JSON.stringify(event);
     }
 
-    function getActions(actor, gameData) {
+    function getChoices(actor, gameData) {
         var out = [];
         var room = gameData.rooms[actor.roomName];
         for (let door of room.doors) {
@@ -181,7 +189,6 @@ const DEF_TYPE = "type";
                 if (defs.hasOwnProperty(defName)) {
                     return gameData.defs[defType];
                 }
-
             }
             throw Error("No defs type '" + defType + "'.")
         }
