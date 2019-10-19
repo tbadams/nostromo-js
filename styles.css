@@ -28,6 +28,18 @@ body {
   border-width: medium;
 }
 
+.tab {
+
+}
+
+.tab button {
+
+}
+
+.selectedPc {
+  color:red
+}
+
 /* scrollbar */
 ::-webkit-scrollbar {
   width: 10px;

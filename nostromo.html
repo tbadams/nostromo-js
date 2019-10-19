@@ -5,13 +5,16 @@
   <body>
       <p id="time">Time:0</p>
 
-      <div id="events" class="main" style="overflow:auto;">&nbsp;</div>
+      <div  class="main" style="overflow:auto;">&nbsp;
+        <div id="events">&nbsp;</div>
+      </div>
       <div class="menu" >menu
         <ul>
         </ul>
       </div>
+              <div id="characters" class="characters"></div>
       <div class="status">
-        boobs&nbsp;
+        status&nbsp;
       </div>
   </body>
 </html>
@@ -19,6 +22,18 @@
 <script src="buckets.js"></script>
 <script>
 "use strict"
+
+/*
+TODO:
+  learn css
+  GameData class
+  Actor classs
+  get rid of event log space
+  names, like characters -> pcs
+
+
+
+*/
 
 const TICK_LENGTH = 1000;
 const ACTION_MOVE = "move";
@@ -44,6 +59,7 @@ const DEF_TYPE = "type";
     loadJSON(function(response) {
         var gameData = JSON.parse(response);
         init(gameData);
+        initUi(gameData);
         setInterval(function () {
             gameLoop(gameData);
         }, TICK_LENGTH)
@@ -139,7 +155,6 @@ const DEF_TYPE = "type";
 
         // TODO cleanup, maintenance (?)
        gameData.time = gameData.time + 1;
-
     }
 
     function handleAction(event, gameData) {
@@ -182,6 +197,7 @@ const DEF_TYPE = "type";
         return out;
     }
 
+
     function initGameData(gameData) {
         gameData.getDef = function(defType, defName) {
             if(gameData.defs.hasOwnProperty(defType)) {
@@ -192,6 +208,45 @@ const DEF_TYPE = "type";
             }
             throw Error("No defs type '" + defType + "'.")
         }
+        gameData.getCharacters = function() {
+          return this.actors.filter(actor => actor.ai === AI_PLAYER);
+        }
+    }
+
+    function initUi(gameData) {
+      // Cache view
+      var view = {};
+      gameData.view = view;
+      view.pcTabs = {};
+
+      // character tabs
+      var charTabs = document.getElementById("characters");
+      for (let pc of gameData.getCharacters()) {
+        var newButton = document.createElement("BUTTON");
+        newButton.innerHTML = pc.name;
+        newButton.onclick=function(){
+          selectPc(pc.name, gameData);
+          draw(gameData);
+        };
+        charTabs.appendChild(newButton);
+        view.pcTabs[pc.name] = newButton;
+      }
+    }
+
+    function selectPc(pcId, gameData) {
+      gameData.selected = pcId;
+    }
+
+    function draw(gameData) {
+      for (let pcId in gameData.view.pcTabs) {
+        var tab = gameData.view.pcTabs[pcId];
+        if (gameData.selected === pcId) {
+          tab.style.color = "green";
+        } else {
+          tab.style.color = "black";
+        }
+      }
+
     }
 
     class Action {
