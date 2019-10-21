@@ -1,6 +1,8 @@
 <html>
   <head>
       <link rel="stylesheet" href="styles.css">
+      <title>null</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
       <p id="time">Time:0</p>
@@ -28,11 +30,9 @@ TODO:
   learn css
   GameData class
   Actor classs
+  fix room names / IDs
   get rid of event log space
   names, like characters -> pcs
-
-
-
 */
 
 const TICK_LENGTH = 1000;
@@ -41,6 +41,7 @@ const ACTION_UNLOCK = "unlock";
 const AI_PLAYER = "player";
 const DEF_DEFAULT = "default";
 const DEF_TYPE = "type";
+const DEF_DOORS = "doors";
 
 
     function loadJSON(callback) {
@@ -57,7 +58,7 @@ const DEF_TYPE = "type";
 
 
     loadJSON(function(response) {
-        var gameData = JSON.parse(response);
+        var gameData = new GameData(JSON.parse(response));
         init(gameData);
         initUi(gameData);
         setInterval(function () {
@@ -66,8 +67,7 @@ const DEF_TYPE = "type";
     });
 
     function init(gameData) {
-        initGameData(gameData);
-        var doorDefs = gameData.defs.doors;
+        var doorDefs = gameData.getDefs(DEF_DOORS);
         for(let i in gameData.doors) {
             var door = new Door(gameData.doors[i], doorDefs);
             gameData.doors[i] = door;
@@ -75,6 +75,7 @@ const DEF_TYPE = "type";
             // create rooms
             for (let roomName of door.rooms) {
                 if (!gameData.rooms.hasOwnProperty(roomName)) {
+
                     gameData.rooms[roomName] = {
                         name:roomName,
                         doors:[],
@@ -197,22 +198,6 @@ const DEF_TYPE = "type";
         return out;
     }
 
-
-    function initGameData(gameData) {
-        gameData.getDef = function(defType, defName) {
-            if(gameData.defs.hasOwnProperty(defType)) {
-                var defs = gameData.defs[defType];
-                if (defs.hasOwnProperty(defName)) {
-                    return gameData.defs[defType];
-                }
-            }
-            throw Error("No defs type '" + defType + "'.")
-        }
-        gameData.getCharacters = function() {
-          return this.actors.filter(actor => actor.ai === AI_PLAYER);
-        }
-    }
-
     function initUi(gameData) {
       // Cache view
       var view = {};
@@ -221,7 +206,7 @@ const DEF_TYPE = "type";
 
       // character tabs
       var charTabs = document.getElementById("characters");
-      for (let pc of gameData.getCharacters()) {
+      for (let pc of gameData.getPcs()) {
         var newButton = document.createElement("BUTTON");
         newButton.innerHTML = pc.name;
         newButton.onclick=function(){
@@ -247,6 +232,23 @@ const DEF_TYPE = "type";
         }
       }
 
+    }
+
+    class GameData {
+      constructor(json) {
+        Object.assign(this, json);
+      }
+
+      getDefs(defType) {
+        if(this.defs.hasOwnProperty(defType)) {
+            return this.defs[defType];
+        }
+        throw Error("No defs type '" + defType + "'.")
+      }
+
+      getPcs() {
+        return this.actors.filter(actor => actor.ai === AI_PLAYER);
+      }
     }
 
     class Action {
@@ -276,6 +278,23 @@ const DEF_TYPE = "type";
         }
     }
 
+    class Room {
+      constructor(json, roomId, doors) {
+        Object.assign(this, json);
+        this.id = roomId;
+        this.doors = doors;
+      }
+
+      links(){
+          var out = [];
+          for (let door of this.doors) {
+              out.push(door.other(this.name));
+          }
+          return out;
+
+          //TODO dspecial and addDoora
+      }};
+
     class Door extends TypedClass {
         constructor(json, typeDefs) {
             super(json, typeDefs);
@@ -298,6 +317,8 @@ const DEF_TYPE = "type";
             return "Door[" + this.rooms[0] + "/" + this.rooms[1] + "]";
         }
     }
+
+    // TODO actor class here
 
 
     //alert( 'Hello, world!' + makeData(23, 15, 10, 0.5));
