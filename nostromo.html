@@ -10,9 +10,13 @@
       <div  class="main" style="overflow:auto;">&nbsp;
         <div id="events">&nbsp;</div>
       </div>
-      <div class="menu" >menu
-        <ul>
+      <div class="menu" >menu<br/>
+        move:
+        <ul id="move-actions">
         </ul>
+        <ul id="get-actions">
+        </ul>
+        <ul id="combat-actions"></ul>
       </div>
               <div id="characters" class="characters"></div>
       <div class="status">
@@ -75,45 +79,31 @@ const DEF_DOORS = "doors";
             // create rooms
             for (let roomName of door.rooms) {
                 if (!gameData.rooms.hasOwnProperty(roomName)) {
-
                     gameData.rooms[roomName] = {
-                        name:roomName,
-                        doors:[],
-                        links(){
-                            var out = [];
-                            for (let door of this.doors) {
-                                out.push(door.other(this.name));
-                            }
-                            return out;
-                        }};
+                        doors:[]
+                    };
+                }
+                var room = gameData.rooms[roomName];
+                if (!room.hasOwnProperty(DEF_DOORS)) {
+                  room[DEF_DOORS] = [];
                 }
                 gameData.rooms[roomName].doors.push(door);
             }
         }
+
+        for(let id in gameData.rooms){
+          gameData.rooms[id] = new Room(gameData.rooms[id], id)
+        }
         // TODO check graph connected
 
         var actors = gameData.actors;
-        var ai = [];
-        var players = [];
         for (let actor of actors) {
-            if (actor.ai === "player") {
-                players.push(actor);
-            } else {
-                // TODO Validate
-                ai.push(actor);
-
-            }
-            // TODO default or require: inventory, attack
-            // TODO random location option
-            if (!actor.hasOwnProperty("roomName")) { // TODO call roomName for clarity
-                throw new Error("No location:" + JSON.stringify(actor));
-            } else if (!gameData.rooms.hasOwnProperty(actor.roomName) ){
-                throw new Error("actor location <" + actor.roomName + "> does not exist");
-            }
+          var no = new Actor(actor); // TODO no
+          if (!gameData.rooms.hasOwnProperty(actor.roomName) ){
+             throw new Error("actor location <" + actor.roomName + "> does not exist");
+         }
             // TODO check name is unique
         }
-
-        var items = [];
 
         var scheduler = buckets.PriorityQueue(function(a, b){
             // TODO unit test
@@ -142,8 +132,9 @@ const DEF_DOORS = "doors";
             if (!busyActors.includes(actor.name)) {
                 // AI actions
                 // TODO Different supported actions by actor
+                var choices = getChoices(actor, gameData);
                 if (actor.ai != AI_PLAYER) {
-                    var choices = getChoices(actor, gameData);
+
                     // TODO Specific AIs
 
                     takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
@@ -251,6 +242,17 @@ const DEF_DOORS = "doors";
       }
     }
 
+    class Actor {
+      constructor(json) {
+        Object.assign(this, json);
+        // TODO default or require: inventory, attack
+        // TODO random location option
+        if (!this.hasOwnProperty("roomName")) {
+            throw new Error("No location:" + JSON.stringify(actor));
+        }
+      }
+    }
+
     class Action {
         constructor(type, target, actor) {
             this.type = type;
@@ -279,10 +281,16 @@ const DEF_DOORS = "doors";
     }
 
     class Room {
-      constructor(json, roomId, doors) {
+      constructor(json, roomId) {
+        // decalre empty lists
+        this.doors = [];
+        this.special = [];
+        // Apply args
         Object.assign(this, json);
         this.id = roomId;
-        this.doors = doors;
+        if(!this.hasOwnProperty("name")) {
+          this.name = this.id;
+        }
       }
 
       links(){

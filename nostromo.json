@@ -1,405 +1,443 @@
 {
-    "doors":[
-        {"rooms":[
-            "bridge",
-            "corridor1"
-            ]
-        },
-        {"rooms":[
-            "corridor1",
-            "lab"
-            ]},
-        {"rooms":[
-            "corridor1",
-            "infirmary"]
-            },
-        {"rooms":[
-            "corridor1",
-            "corridor2"]
-        },
-        {"rooms":[
-            "corridor2",
-            "cryo lab"
-            ]
-        },
-        {"rooms":[
-            "corridor2",
-            "corridor3"
-            ]
-        },
-        {"rooms":[
-            "corridor2",
-            "corridor4"
-            ]
-        },
-        {
-            "rooms":[
-                "corridor2",
-                "cargopod2"
-            ],
-            "type":"ladder"
-        },
-        {"rooms":[
-            "corridor3",
-            "infirmary stores"
-            ]
-        },
-        {"rooms":[
-            "corridor3",
-            "armory"
-            ]
-        },
-        {"rooms":[
-            "corridor3",
-            "engine1"
-            ]
-        },
-        {"rooms":[
-            "corridor3",
-            "corridor4"
-            ]
-        },
-        {"rooms":[
-            "corridor4",
-            "engine2"
-            ]
-        },
-        {"rooms":[
-            "corridor4",
-            "corridor5"
-            ]
-        },
-        {"rooms":[
-            "corridor5",
-            "engine3"
-            ]
-        },
-        {"rooms":[
-            "corridor5",
-            "stores1"
-            ]
-        },
-        {"rooms":[
-            "corridor5",
-            "lab stores"
-            ]
-        },
-        {"rooms":[
-            "corridor1",
-            "living quarters"
-            ],
-            "type":"ladder"
-
-        },
-        {"rooms":[
-            "living quarters",
-            "recreation"
-            ]
-        },
-        {"rooms":[
-            "living quarters",
-            "mess"
-            ]
-        },
-        {"rooms":[
-            "recreation",
-            "mess"
-            ]
-        },
-        {"rooms":[
-            "mess",
-            "corridor6"
-            ]
-        },
-        {"rooms":[
-            "corridor6",
-            "airlock1"
-            ]
-        },
-        {"rooms":[
-            "corridor6",
-            "airlock2"
-            ]
-        },
-        {"rooms":[
-            "corridor6",
-            "computer"
-            ]
-        },
-        {"rooms":[
-            "corridor6",
-            "stores3"
-            ]
-        },
-        {"rooms":[
-            "computer",
-            "stores2"
-            ]
-        },
-        {"rooms":[
-            "corridor2",
-            "cargopod2"
-            ]
-        },
-        {"rooms":[
-            "cargopod2",
-            "corridor7"
-            ]
-        },
-        {"rooms":[
-            "corridor7",
-            "life support"
-            ]
-        },
-        {"rooms":[
-            "cargopod2",
-            "cargopod1"
-            ]
-        },
-        {"rooms":[
-            "cargopod2",
-            "cargopod3"
-            ]
-        },
-        {"rooms":[
-            "cargopod2",
-            "shuttle bay"
-            ]
-        },
-        {"rooms":[
-            "shuttle bay",
-            "shuttle store"
-            ]
-        },
-        {"rooms":[
-            "shuttle bay",
-            "engineering"
-            ]
-        },
-        {"rooms":[
-            "engineering",
-            "engineering stores"
-            ]
-        },
-        {"rooms":[
-            "shuttle bay",
-            "shuttle"
-            ]
-        },
-        {"rooms":[
-            "shuttle bay",
-            "shuttle bay vent"
-            ],
-            "type":"grate"
-        },
-        {"rooms":[
-            "shuttle bay vent",
-            "engineering vent"
-            ],
-            "type":"vent"
-        },
-        {"rooms":[
-            "engineering vent",
-            "engineering stores vent"
-            ],
-            "type":"vent"
-        },
-        {"rooms":[
-            "engineering",
-            "engineering vent"
-            ],
-            "type":"grate"
-        },
-        {"rooms":[
-            "engineering stores",
-            "engineering stores vent"
-            ],
-            "type":"grate"
-        },
-        {"rooms":[
-            "engineering stores vent",
-            "cargopod3 vent"
-            ],
-            "type":"vent"
-        },
-        {"rooms":[
-            "shuttle store",
-            "shuttle store vent"
-            ],
-            "type":"grate"
-        },
-        {"rooms":[
-            "cargopod1",
-            "cargopod1 vent"
-            ],
-            "type":"grate"
-        },
-        {"rooms":[
-            "cargopod2",
-            "cargopod2 vent"
-            ],
-            "type":"grate"
-        },
-        {"rooms":[
-            "cargopod3",
-            "cargopod3 vent"
-            ],
-            "type":"vent"
-        },
-        {
-            "rooms":[
-                "cargopod3 vent",
-                "corridor7 vent"
-            ],
-            "type":"vent"
-        },
-        {
-            "rooms":[
-                "corridor7 vent",
-                "cargopod2 vent"
-            ],
-            "type":"vent"
-        },
-                {
-            "rooms":[
-                "corridor7 vent",
-                "life support vent"
-            ],
-            "type":"vent"
-        },
-        {
-            "rooms":[
-                "cargopod1 vent",
-                "corridor7 vent"
-            ],
-            "type":"vent"
-        },
-        {
-            "rooms":[
-                "shuttle store vent",
-                "cargopod1 vent"
-            ],
-            "type":"vent"
-        },
-        {
-            "rooms":[
-                "shuttle bay vent",
-                "cargopod1 vent"
-            ],
-            "type":"vent"
-        },
-        {"rooms":[
-            "corridor7",
-            "corridor7 vent"
-            ],
-            "type":"grate"
-        },
-        {"rooms":[
-            "life support",
-            "life support vent"
-            ],
-            "type":"grate"
-        }
-
-    ],
-    "rooms":[
-        {
-            "roomName":"bridge",
-            "special":[
-                "self-destruct"
-            ]
-        },
-        {
-            "roomName":"cryo lab",
-            "special":[
-                "hypersleep"
-            ]
-        }
-    ],
-    "actors":[
-        {
-            "name":"Ripley",
-            "ai":"player",
-            "roomName":"bridge"
-        },
-        {
-            "name":"Parker",
-            "ai":"player",
-            "roomName":"bridge"
-        },
-        {
-            "name":"Lambert",
-            "ai":"player",
-            "roomName":"bridge"
-        },
-        {
-            "name":"Alien",
-            "ai":"classic",
-            "inventory":0,
-            "roomName":"shuttle bay"
-        },
-        {
-            "name":"Cat",
-            "ai":"wander",
-            "inventory":0,
-            "small":true,
-            "roomName":"corridor2"
-        }
-    ],
-
-    "defs":{
-        "ai":{
-
-        },
-        "items": {
-            "Laser Pistol":{
-                "damage":10
-            },
-            "Fire Extinguisher":{
-                "action":"extinguish"
-            },
-            "Spanner":{
-                "name":"Spanner",
-                "damage":10
-            },
-            "Electric Prod":{
-                "damage":"??",
-                "bleed":false
-            },
-            "Cat Box": {
-                "cat":false
-            },
-            "Harpoon Gun": {
-                "damage":"iunno"
-            },
-            "Motion Tracker": {
-                "track":1
-            }
-
-        },
-        "special":{
-            "self-destruct":{
-
-            },
-            "hypersleep":{
-
-            }
-        },
-        "doors":{
-            "default":{
-                "locked":false,
-                "floorChange":false
-            },
-            "grate":{
-                "locked":true
-            },
-            "vent":{
-
-            },
-            "ladder":{
-                "floorChange":true
-            }
-        }
+  "doors": [
+    {
+      "rooms": [
+        "bridge",
+        "corridor1"
+      ]
     },
-    "time":0
+    {
+      "rooms": [
+        "corridor1",
+        "lab"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor1",
+        "infirmary"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor1",
+        "corridor2"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor2",
+        "cryo lab"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor2",
+        "corridor3"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor2",
+        "corridor4"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor2",
+        "cargopod2"
+      ],
+      "type": "ladder"
+    },
+    {
+      "rooms": [
+        "corridor3",
+        "infirmary stores"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor3",
+        "armory"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor3",
+        "engine1"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor3",
+        "corridor4"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor4",
+        "engine2"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor4",
+        "corridor5"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor5",
+        "engine3"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor5",
+        "stores1"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor5",
+        "lab stores"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor1",
+        "living quarters"
+      ],
+      "type": "ladder"
+    },
+    {
+      "rooms": [
+        "living quarters",
+        "recreation"
+      ]
+    },
+    {
+      "rooms": [
+        "living quarters",
+        "mess"
+      ]
+    },
+    {
+      "rooms": [
+        "recreation",
+        "mess"
+      ]
+    },
+    {
+      "rooms": [
+        "mess",
+        "corridor6"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor6",
+        "airlock1"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor6",
+        "airlock2"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor6",
+        "computer"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor6",
+        "stores3"
+      ]
+    },
+    {
+      "rooms": [
+        "computer",
+        "stores2"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor2",
+        "cargopod2"
+      ]
+    },
+    {
+      "rooms": [
+        "cargopod2",
+        "corridor7"
+      ]
+    },
+    {
+      "rooms": [
+        "corridor7",
+        "life support"
+      ]
+    },
+    {
+      "rooms": [
+        "cargopod2",
+        "cargopod1"
+      ]
+    },
+    {
+      "rooms": [
+        "cargopod2",
+        "cargopod3"
+      ]
+    },
+    {
+      "rooms": [
+        "cargopod2",
+        "shuttle bay"
+      ]
+    },
+    {
+      "rooms": [
+        "shuttle bay",
+        "shuttle store"
+      ]
+    },
+    {
+      "rooms": [
+        "shuttle bay",
+        "engineering"
+      ]
+    },
+    {
+      "rooms": [
+        "engineering",
+        "engineering stores"
+      ]
+    },
+    {
+      "rooms": [
+        "shuttle bay",
+        "shuttle"
+      ]
+    },
+    {
+      "rooms": [
+        "shuttle bay",
+        "shuttle bay vent"
+      ],
+      "type": "grate"
+    },
+    {
+      "rooms": [
+        "shuttle bay vent",
+        "engineering vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "engineering vent",
+        "engineering stores vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "engineering",
+        "engineering vent"
+      ],
+      "type": "grate"
+    },
+    {
+      "rooms": [
+        "engineering stores",
+        "engineering stores vent"
+      ],
+      "type": "grate"
+    },
+    {
+      "rooms": [
+        "engineering stores vent",
+        "cargopod3 vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "shuttle store",
+        "shuttle store vent"
+      ],
+      "type": "grate"
+    },
+    {
+      "rooms": [
+        "cargopod1",
+        "cargopod1 vent"
+      ],
+      "type": "grate"
+    },
+    {
+      "rooms": [
+        "cargopod2",
+        "cargopod2 vent"
+      ],
+      "type": "grate"
+    },
+    {
+      "rooms": [
+        "cargopod3",
+        "cargopod3 vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "cargopod3 vent",
+        "corridor7 vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "corridor7 vent",
+        "cargopod2 vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "corridor7 vent",
+        "life support vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "cargopod1 vent",
+        "corridor7 vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "shuttle store vent",
+        "cargopod1 vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "shuttle bay vent",
+        "cargopod1 vent"
+      ],
+      "type": "vent"
+    },
+    {
+      "rooms": [
+        "corridor7",
+        "corridor7 vent"
+      ],
+      "type": "grate"
+    },
+    {
+      "rooms": [
+        "life support",
+        "life support vent"
+      ],
+      "type": "grate"
+    }
+  ],
+  "rooms": {
+    "bridge":
+    {
+      "special": [
+        "self-destruct"
+      ]
+    },
+    "cryo lab":{
+      "special": [
+        "hypersleep"
+      ]
+    }
+  },
+  "actors": [
+    {
+      "name": "Ripley",
+      "ai": "player",
+      "roomName": "bridge"
+    },
+    {
+      "name": "Parker",
+      "ai": "player",
+      "roomName": "bridge"
+    },
+    {
+      "name": "Lambert",
+      "ai": "player",
+      "roomName": "bridge"
+    },
+    {
+      "name": "Alien",
+      "ai": "classic",
+      "inventory": 0,
+      "roomName": "shuttle bay"
+    },
+    {
+      "name": "Cat",
+      "ai": "wander",
+      "inventory": 0,
+      "small": true,
+      "roomName": "corridor2"
+    }
+  ],
+  "defs": {
+    "ai": {},
+    "items": {
+      "Laser Pistol": {
+        "damage": 10
+      },
+      "Fire Extinguisher": {
+        "action": "extinguish"
+      },
+      "Spanner": {
+        "name": "Spanner",
+        "damage": 10
+      },
+      "Electric Prod": {
+        "damage": "??",
+        "bleed": false
+      },
+      "Cat Box": {
+        "cat": false
+      },
+      "Harpoon Gun": {
+        "damage": "iunno"
+      },
+      "Motion Tracker": {
+        "track": 1
+      }
+    },
+    "special": {
+      "self-destruct": {},
+      "hypersleep": {}
+    },
+    "doors": {
+      "default": {
+        "locked": false,
+        "floorChange": false
+      },
+      "grate": {
+        "locked": true
+      },
+      "vent": {},
+      "ladder": {
+        "floorChange": true
+      }
+    }
+  },
+  "time": 0
 }
