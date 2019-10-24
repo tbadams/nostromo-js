@@ -32,11 +32,13 @@
 /*
 TODO:
   learn css
-  GameData class
-  Actor classs
   fix room names / IDs
   get rid of event log space
   names, like characters -> pcs
+  finish map
+  make movie accurate map
+  make fan recreation accurate map
+
 */
 
 const TICK_LENGTH = 1000;
@@ -46,6 +48,8 @@ const AI_PLAYER = "player";
 const DEF_DEFAULT = "default";
 const DEF_TYPE = "type";
 const DEF_DOORS = "doors";
+const SELECTED = "selected";
+const MOVE_ACTIONS = "move-actions";
 
 
     function loadJSON(callback) {
@@ -97,13 +101,22 @@ const DEF_DOORS = "doors";
         // TODO check graph connected
 
         var actors = gameData.actors;
-        for (let actor of actors) {
-          var no = new Actor(actor); // TODO no
+        gameData.transient.actors = {};
+        for (let i in actors) {
+          var actor = new Actor(actors[i]);
+          actors[i] = actor;
           if (!gameData.rooms.hasOwnProperty(actor.roomName) ){
              throw new Error("actor location <" + actor.roomName + "> does not exist");
          }
-            // TODO check name is unique
+
+         //        Check for dupes, make k-time id lookup
+         if (!gameData.transient.actors.hasOwnProperty(actor.id)) {
+           gameData.transient.actors[actor.id] = actor;
+         } else {
+           throw new Error("Duplicate actor id " + actor.id);
+         }
         }
+
 
         var scheduler = buckets.PriorityQueue(function(a, b){
             // TODO unit test
@@ -183,6 +196,7 @@ const DEF_DOORS = "doors";
             if (!door.locked) {
                 out.push(new Action(ACTION_MOVE, door.other(room.name), actor));
             } else {
+              // TODO If actor supported
                 out.push(new Action(ACTION_UNLOCK, door, actor));
             }
         }
@@ -192,7 +206,7 @@ const DEF_DOORS = "doors";
     function initUi(gameData) {
       // Cache view
       var view = {};
-      gameData.view = view;
+      gameData.transient.view = view;
       view.pcTabs = {};
 
       // character tabs
@@ -207,6 +221,15 @@ const DEF_DOORS = "doors";
         charTabs.appendChild(newButton);
         view.pcTabs[pc.name] = newButton;
       }
+
+      view.moves = document.getElementById(MOVE_ACTIONS);
+
+      // Validate
+      for (let subview in view) {
+        if (view[subview] === undefined || view[subview] === null) {
+          throw Error("Empty view handle " + subview);
+        }
+      }
     }
 
     function selectPc(pcId, gameData) {
@@ -214,8 +237,10 @@ const DEF_DOORS = "doors";
     }
 
     function draw(gameData) {
-      for (let pcId in gameData.view.pcTabs) {
-        var tab = gameData.view.pcTabs[pcId];
+      var view = gameData.transient.view;
+      // PC tabs
+      for (let pcId in view.pcTabs) {
+        var tab = view.pcTabs[pcId];
         if (gameData.selected === pcId) {
           tab.style.color = "green";
         } else {
@@ -223,11 +248,36 @@ const DEF_DOORS = "doors";
         }
       }
 
+      // menu
+      if(gameData.pcSelected()) {
+        var pc = gameData.getActor(gameData.selected);
+        var choices = getChoices(pc, gameData);
+        var choicesByType = Action.byType(choices);
+        // Move actions
+        var moveView = view.moves;
+        emptyElem(moveView);
+        if (choicesByType.hasOwnProperty(ACTION_MOVE)) {
+          var moveActions = choicesByType[ACTION_MOVE];
+          for (let move of moveActions) {
+            moveView.innerHTML = moveView.innerHTML
+                + "<li>" + move.getMenuText() + "</li>"
+          }
+
+        }
+      }
+
+    }
+
+    function emptyElem(elem) {
+      while(elem.hasChildNodes()) {
+        elem.removeChild(elem.lastChild);
+      }
     }
 
     class GameData {
       constructor(json) {
         Object.assign(this, json);
+        this.transient = {};
       }
 
       getDefs(defType) {
@@ -240,11 +290,31 @@ const DEF_DOORS = "doors";
       getPcs() {
         return this.actors.filter(actor => actor.ai === AI_PLAYER);
       }
+
+      pcSelected() {
+        return this.hasOwnProperty(SELECTED) && this.selected != undefined
+            && this.selected != null;
+      }
+
+      getActor(id) {
+        if (this.transient.actors.hasOwnProperty(id)) {
+          return this.transient.actors[id];
+        }
+        throw Error("No actor with id " + id);
+      }
     }
 
     class Actor {
       constructor(json) {
         Object.assign(this, json);
+        if (this.name === undefined) {
+          this.name = this.id;
+        } else if (this.id ===undefined) {
+          this.id = this.name;
+        }
+        if (this.id === undefined) {
+          throw Error("Actor has no id or name");
+        }
         // TODO default or require: inventory, attack
         // TODO random location option
         if (!this.hasOwnProperty("roomName")) {
@@ -258,6 +328,32 @@ const DEF_DOORS = "doors";
             this.type = type;
             this.target = target;
             this.actor = actor;
+        }
+
+        static byType(actions) {
+          var aggregate = {};
+          for (let next of actions){
+            if (!next.hasOwnProperty(DEF_TYPE)) {
+              throw Error("Typeless action in byType()");
+            }
+            if(!aggregate.hasOwnProperty(next.type)) {
+              aggregate[next.type] = [];
+            }
+            aggregate[next.type].push(next);
+          }
+          return aggregate;
+          }
+
+        getMenuText() {
+          // TODO make consistent?
+          switch(this.type) {
+            case ACTION_MOVE:
+              return this.target;
+            case ACTION_UNLOCK:
+              return "Unlock Grate"; // TODO localize?
+            default:
+              throw new Error("Unsupported action text: " + this.type);
+          }
         }
     }
 
@@ -330,4 +426,36 @@ const DEF_DOORS = "doors";
 
 
     //alert( 'Hello, world!' + makeData(23, 15, 10, 0.5));
+
+    /*
+    "actors": {
+      "Ripley":{
+        "ai": "player",
+        "roomName": "bridge"
+      },
+      "Parker":{
+        "ai": "player",
+        "roomName": "bridge"
+      },
+      "Lambert":{
+        "name": "",
+        "ai": "player",
+        "roomName": "bridge"
+      },
+      "Alien":{
+        "ai": "classic",
+        "inventory": 0,
+        "roomName": "shuttle bay"
+      },
+      "Cat":{
+        "name": "",
+        "ai": "wander",
+        "inventory": 0,
+        "small": true,
+        "roomName": "corridor2"
+      }
+    },
+
+
+    */
   </script>
