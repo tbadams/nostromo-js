@@ -388,12 +388,18 @@
     {
       "name": "Alien",
       "ai": "classic",
+      "actions":[
+        "move", "attack", "unlock"
+      ],
       "inventory": 0,
       "roomName": "shuttle bay"
     },
     {
       "name": "Cat",
       "ai": "wander",
+      "actions":[
+        "move"
+      ],
       "inventory": 0,
       "small": true,
       "roomName": "corridor2"

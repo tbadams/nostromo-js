@@ -207,12 +207,17 @@ const OTHER_ACTIONS = "other-actions";
     function getChoices(actor, gameData) {
         let out = [];
         let room = gameData.rooms[actor.roomName];
+        let addIfSupported = (action)=>{
+          if(action.actor.actions.includes(action.type)) {
+            out.push(action);
+          }
+        }
         for (let door of room.doors) {
             if (!door.locked) {
-                out.push(new Action(Actions.MOVE, door.other(room.name), actor));
+              addIfSupported(new Action(Actions.MOVE, door.other(room.name), actor));
             } else {
               // TODO If actor supported
-                out.push(new Action(Actions.UNLOCK, door, actor));
+              addIfSupported(new Action(Actions.UNLOCK, door, actor));
             }
         }
         // Combat
@@ -221,7 +226,7 @@ const OTHER_ACTIONS = "other-actions";
           if (otherActor.roomName === actor.roomName
               && otherActor.id != actor.id) {
                 // TODO Cat-catching
-                out.push(new Action(Actions.ATTACK, otherActor, actor));
+              addIfSupported(new Action(Actions.ATTACK, otherActor, actor));
           }
         }
 
@@ -231,15 +236,15 @@ const OTHER_ACTIONS = "other-actions";
           if(aRoom.items) {
             let items = aRoom.items;
             for (let item of items) {
-              out.push(new Action(Actions.GET, item, actor));
+            addIfSupported(new Action(Actions.GET, item, actor));
             }
           }
         }
         if (actor.items) {
           let items = actor.items;
           for (let item of items) {
-            out.push(new Action(Actions.USE, item, actor));
-            out.push(new Action(Actions.DROP, item, actor));
+          addIfSupported(new Action(Actions.USE, item, actor));
+          addIfSupported(new Action(Actions.DROP, item, actor));
           }
         }
 
@@ -380,18 +385,25 @@ const OTHER_ACTIONS = "other-actions";
     class Actor {
       constructor(json) {
         Object.assign(this, json);
-        if (this.name === undefined) {
+        if (!this.name) {
           this.name = this.id;
-        } else if (this.id ===undefined) {
+        } else if (!this.id) {
           this.id = this.name;
         }
-        if (this.id === undefined) {
+        if (!this.id) {
           throw Error("Actor has no id or name");
         }
         // TODO default or require: inventory, attack
         // TODO random location option
         if (!this.hasOwnProperty("roomName")) {
             throw new Error("No location:" + JSON.stringify(actor));
+        }
+        // Assign default allowed actions (all)
+        if (!this.actions) {
+          this.actions = [];
+          for (let type in Actions) {
+            this.actions.push(Actions[type]);
+          }
         }
       }
     }
