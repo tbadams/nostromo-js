@@ -20,6 +20,7 @@ body {
   border-style: solid;
   border-color: green;
   border-width: medium;
+  display: block;
 }
 .status {
   width: 100%

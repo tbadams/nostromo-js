@@ -12,14 +12,14 @@
       </div>
       <div class="menu" >menu<br/>
         move:
-        <ul id="move-actions">
-        </ul>
+        <div id="move-actions">
+        </div>
         Get:
-        <ul id="get-actions"></ul>
+        <div id="get-actions"></div>
         Combat:
-        <ul id="combat-actions"></ul>
+        <div id="combat-actions"></div>
         Other:
-        <ul id="other-actions"></ul>
+        <div id="other-actions"></div>
       </div>
               <div id="characters" class="characters"></div>
       <div class="status">
@@ -164,9 +164,8 @@ const OTHER_ACTIONS = "other-actions";
         }
 
        // Queue new actions
-        var busyActors = scheduler.toArray().map((a)=>a.actor.name); // TODO non-actors
         for (let actor of gameData.actors) {
-            if (!busyActors.includes(actor.name)) {
+            if (!gameData.isBusy(actor.name)) {
                 // AI actions
                 // TODO Different supported actions by actor
                 var choices = getChoices(actor, gameData);
@@ -184,6 +183,8 @@ const OTHER_ACTIONS = "other-actions";
 
         // TODO cleanup, maintenance (?)
        gameData.time = gameData.time + 1;
+
+       draw(gameData);
     }
 
     function handleAction(event, gameData) {
@@ -193,34 +194,14 @@ const OTHER_ACTIONS = "other-actions";
             event.target.locked = false;
         }
         var log = document.getElementById("events");
-        log.innerHTML= log.innerHTML + (eventText(event, gameData) + "<br/>");
+        log.innerHTML= log.innerHTML + (event.getEventText(gameData) + "<br/>");
     }
 
     function takeAction(actor, action, gameData) { // todo rename queue
+      // TODO check action is still valid
         var length = 5; // TODO ??
         action.time = gameData.time + length;
         gameData.scheduler.enqueue(action);
-    }
-
-    function eventText(event, gameData) {
-        let type = event.type;
-        switch(type) {
-          case Actions.MOVE:
-            return event.actor.name + " moved to " + event.target + ".";
-          case Actions.UNLOCK:
-            return event.actor.name + " unlocked " + event.target.toString() + ".";
-          case Actions.ATTACK:
-            // TODO passive voice?
-            return event.actor.name + " attacked " + event.target.name + ".";
-          case Actions.GET:
-            return event.actor.name + " picked up" + event.target.name + ".";
-          case Actions.DROP:
-            return event.actor.name + " dropped " + event.target.name + ".";
-          case Actions.USE:
-            return event.actor.name + " used " + event.target.name + ".";
-        }
-
-        return "UNHANDLED EVENT:" + JSON.stringify(event);
     }
 
     function getChoices(actor, gameData) {
@@ -285,7 +266,11 @@ const OTHER_ACTIONS = "other-actions";
         view.pcTabs[pc.name] = newButton;
       }
 
-      view.moves = document.getElementById(MOVE_ACTIONS);
+      view.menu = {};
+      view.menu.moves = document.getElementById(MOVE_ACTIONS);
+      view.menu.gets = document.getElementById(GET_ACTIONS);
+      view.menu.combat = document.getElementById(COMBAT_ACTIONS);
+      view.menu.other = document.getElementById(OTHER_ACTIONS);
 
       // Validate
       for (let subview in view) {
@@ -317,16 +302,36 @@ const OTHER_ACTIONS = "other-actions";
         var choices = getChoices(pc, gameData);
         var choicesByType = Action.byType(choices);
         // Move actions
-        var moveView = view.moves;
-        emptyElem(moveView);
-        if (choicesByType.hasOwnProperty(Actions.MOVE)) {
-          var moveActions = choicesByType[Actions.MOVE];
-          for (let move of moveActions) {
-            moveView.innerHTML = moveView.innerHTML
-                + "<li>" + move.getMenuText() + "</li>"
-          }
-
+        let menu = view.menu;
+        for(let subview in menu) {
+          emptyElem(menu[subview]);
         }
+        if (!gameData.isBusy(pc.id)) {
+          for(let action of choices) {
+            var newButton = document.createElement("BUTTON");
+            newButton.innerHTML = action.getMenuText();
+            newButton.onclick=function(){
+              takeAction(pc, action, gameData)
+              draw(gameData);
+            };
+            switch(action.type) {
+              case Actions.MOVE:
+                view.menu.moves.appendChild(newButton);
+                break;
+              case Actions.GET:
+                view.menu.gets.appendChild(newButton);
+                break;
+              case Actions.ATTACK:
+                view.menu.combat.appendChild(newButton);
+                break;
+              default:
+                view.menu.other.appendChild(newButton);
+                break;
+            }
+
+          }
+        } // else busy
+
       }
 
     }
@@ -364,6 +369,11 @@ const OTHER_ACTIONS = "other-actions";
           return this.transient.actors[id];
         }
         throw Error("No actor with id " + id);
+      }
+
+      isBusy(actorId) {
+        var busyActors = this.scheduler.toArray().map((a)=>a.actor.name); // TODO non-actors
+        return busyActors.includes(actorId);
       }
     }
 
@@ -414,9 +424,38 @@ const OTHER_ACTIONS = "other-actions";
               return this.target;
             case Actions.UNLOCK:
               return "Unlock Grate"; // TODO localize?
+            case Actions.ATTACK:
+              return "Attack " + this.target.name;
+            case Actions.GET:
+              return this.target.name;
+            case Actions.DROP:
+              return "Drop " + thi.target.name;
+            case Actions.USE:
+              return "Use " + this.target.name;
             default:
               throw new Error("Unsupported action text: " + this.type);
           }
+        }
+
+        getEventText(gameData) {
+            let type = this.type;
+            switch(type) {
+              case Actions.MOVE:
+                return this.actor.name + " moved to " + this.target + ".";
+              case Actions.UNLOCK:
+                return this.actor.name + " unlocked " + this.target.toString() + ".";
+              case Actions.ATTACK:
+                // TODO passive voice?
+                return this.actor.name + " attacked " + this.target.name + ".";
+              case Actions.GET:
+                return this.actor.name + " picked up " + this.target.name + ".";
+              case Actions.DROP:
+                return this.actor.name + " dropped " + this.target.name + ".";
+              case Actions.USE:
+                return this.actor.name + " used " + this.target.name + ".";
+            }
+
+            return "UNHANDLED EVENT:" + JSON.stringify(event);
         }
     }
 
