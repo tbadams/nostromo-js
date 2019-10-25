@@ -14,9 +14,12 @@
         move:
         <ul id="move-actions">
         </ul>
-        <ul id="get-actions">
-        </ul>
+        Get:
+        <ul id="get-actions"></ul>
+        Combat:
         <ul id="combat-actions"></ul>
+        Other:
+        <ul id="other-actions"></ul>
       </div>
               <div id="characters" class="characters"></div>
       <div class="status">
@@ -42,14 +45,24 @@ TODO:
 */
 
 const TICK_LENGTH = 1000;
-const ACTION_MOVE = "move";
-const ACTION_UNLOCK = "unlock";
+const Actions = {
+  MOVE:"move",
+  UNLOCK:"unlock",
+  ATTACK:"attack",
+  GET:"get",
+  DROP:"drop",
+  USE:"use"
+};
 const AI_PLAYER = "player";
 const DEF_DEFAULT = "default";
 const DEF_TYPE = "type";
 const DEF_DOORS = "doors";
+const DEF_ITEMS = "items";
 const SELECTED = "selected";
 const MOVE_ACTIONS = "move-actions";
+const GET_ACTIONS = "get-actions";
+const COMBAT_ACTIONS = "combat-actions";
+const OTHER_ACTIONS = "other-actions";
 
 
     function loadJSON(callback) {
@@ -98,6 +111,18 @@ const MOVE_ACTIONS = "move-actions";
         for(let id in gameData.rooms){
           gameData.rooms[id] = new Room(gameData.rooms[id], id)
         }
+
+        // Validate items
+        let itemDefs = gameData.getDefs(DEF_ITEMS);
+        for (let roomId in gameData.rooms) {
+          let room = gameData.rooms[roomId];
+          if (room.items) {
+            let items = room.items;
+            for (let item of items) {
+              // TODO uhhhhh
+            }
+          }
+        }
         // TODO check graph connected
 
         var actors = gameData.actors;
@@ -116,7 +141,6 @@ const MOVE_ACTIONS = "move-actions";
            throw new Error("Duplicate actor id " + actor.id);
          }
         }
-
 
         var scheduler = buckets.PriorityQueue(function(a, b){
             // TODO unit test
@@ -163,9 +187,9 @@ const MOVE_ACTIONS = "move-actions";
     }
 
     function handleAction(event, gameData) {
-        if (event.type === ACTION_MOVE) {
+        if (event.type === Actions.MOVE) {
             event.actor.roomName = event.target
-        } else if (event.type === ACTION_UNLOCK) {
+        } else if (event.type === Actions.UNLOCK) {
             event.target.locked = false;
         }
         var log = document.getElementById("events");
@@ -179,27 +203,66 @@ const MOVE_ACTIONS = "move-actions";
     }
 
     function eventText(event, gameData) {
-        var type = event.type;
-        if (type === ACTION_MOVE) {
+        let type = event.type;
+        switch(type) {
+          case Actions.MOVE:
             return event.actor.name + " moved to " + event.target + ".";
-        }
-        if (type === ACTION_UNLOCK) {
+          case Actions.UNLOCK:
             return event.actor.name + " unlocked " + event.target.toString() + ".";
+          case Actions.ATTACK:
+            // TODO passive voice?
+            return event.actor.name + " attacked " + event.target.name + ".";
+          case Actions.GET:
+            return event.actor.name + " picked up" + event.target.name + ".";
+          case Actions.DROP:
+            return event.actor.name + " dropped " + event.target.name + ".";
+          case Actions.USE:
+            return event.actor.name + " used " + event.target.name + ".";
         }
+
         return "UNHANDLED EVENT:" + JSON.stringify(event);
     }
 
     function getChoices(actor, gameData) {
-        var out = [];
-        var room = gameData.rooms[actor.roomName];
+        let out = [];
+        let room = gameData.rooms[actor.roomName];
         for (let door of room.doors) {
             if (!door.locked) {
-                out.push(new Action(ACTION_MOVE, door.other(room.name), actor));
+                out.push(new Action(Actions.MOVE, door.other(room.name), actor));
             } else {
               // TODO If actor supported
-                out.push(new Action(ACTION_UNLOCK, door, actor));
+                out.push(new Action(Actions.UNLOCK, door, actor));
             }
         }
+        // Combat
+        let actorsHere = [];
+        for (let otherActor of gameData.actors ) {
+          if (otherActor.roomName === actor.roomName
+              && otherActor.id != actor.id) {
+                // TODO Cat-catching
+                out.push(new Action(Actions.ATTACK, otherActor, actor));
+          }
+        }
+
+        // Items
+        for (let roomId in gameData.rooms) {
+          let aRoom = gameData.rooms[roomId];
+          if(aRoom.items) {
+            let items = aRoom.items;
+            for (let item of items) {
+              out.push(new Action(Actions.GET, item, actor));
+            }
+          }
+        }
+        if (actor.items) {
+          let items = actor.items;
+          for (let item of items) {
+            out.push(new Action(Actions.USE, item, actor));
+            out.push(new Action(Actions.DROP, item, actor));
+          }
+        }
+
+
         return out;
     }
 
@@ -256,8 +319,8 @@ const MOVE_ACTIONS = "move-actions";
         // Move actions
         var moveView = view.moves;
         emptyElem(moveView);
-        if (choicesByType.hasOwnProperty(ACTION_MOVE)) {
-          var moveActions = choicesByType[ACTION_MOVE];
+        if (choicesByType.hasOwnProperty(Actions.MOVE)) {
+          var moveActions = choicesByType[Actions.MOVE];
           for (let move of moveActions) {
             moveView.innerHTML = moveView.innerHTML
                 + "<li>" + move.getMenuText() + "</li>"
@@ -347,9 +410,9 @@ const MOVE_ACTIONS = "move-actions";
         getMenuText() {
           // TODO make consistent?
           switch(this.type) {
-            case ACTION_MOVE:
+            case Actions.MOVE:
               return this.target;
-            case ACTION_UNLOCK:
+            case Actions.UNLOCK:
               return "Unlock Grate"; // TODO localize?
             default:
               throw new Error("Unsupported action text: " + this.type);
@@ -381,6 +444,7 @@ const MOVE_ACTIONS = "move-actions";
         // decalre empty lists
         this.doors = [];
         this.special = [];
+        this.items = [];
         // Apply args
         Object.assign(this, json);
         this.id = roomId;
@@ -422,40 +486,6 @@ const MOVE_ACTIONS = "move-actions";
         }
     }
 
-    // TODO actor class here
-
 
     //alert( 'Hello, world!' + makeData(23, 15, 10, 0.5));
-
-    /*
-    "actors": {
-      "Ripley":{
-        "ai": "player",
-        "roomName": "bridge"
-      },
-      "Parker":{
-        "ai": "player",
-        "roomName": "bridge"
-      },
-      "Lambert":{
-        "name": "",
-        "ai": "player",
-        "roomName": "bridge"
-      },
-      "Alien":{
-        "ai": "classic",
-        "inventory": 0,
-        "roomName": "shuttle bay"
-      },
-      "Cat":{
-        "name": "",
-        "ai": "wander",
-        "inventory": 0,
-        "small": true,
-        "roomName": "corridor2"
-      }
-    },
-
-
-    */
   </script>

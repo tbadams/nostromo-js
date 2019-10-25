@@ -362,6 +362,11 @@
       "special": [
         "hypersleep"
       ]
+    },
+    "lab":{
+      "items":[
+        "Cat Box"
+      ]
     }
   },
   "actors": [
