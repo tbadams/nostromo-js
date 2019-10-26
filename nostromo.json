@@ -351,9 +351,9 @@
       "type": "grate"
     }
   ],
-  "rooms": {
-    "bridge":
+  "rooms": [
     {
+      "id":"bridge",
       "special": [
         "self-destruct"
       ],
@@ -363,17 +363,21 @@
         {"type":"Incinerator"}
       ]
     },
-    "cryo lab":{
+    {
+      "id":"cryo lab",
       "special": [
         "hypersleep"
       ]
     },
-    "lab":{
+    {
+      "id":"lab",
       "items":[
-        {"type":"Cat Box"}
+        {
+          "type":"Cat Box"
+        }
       ]
     }
-  },
+  ],
   "actors": [
     {
       "id": "Ripley",

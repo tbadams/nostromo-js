@@ -58,11 +58,17 @@ const Actions = {
   DROP:"drop",
   USE:"use"
 };
+const Category = {
+  DOORS:"doors",
+  ITEMS:"items",
+  ACTORS:"actors",
+  ROOMS:"rooms",
+  AI:"ai",
+  SPECIAL:"special"
+};
 const AI_PLAYER = "player";
 const DEF_DEFAULT = "default";
 const DEF_TYPE = "type";
-const DEF_DOORS = "doors";
-const DEF_ITEMS = "items";
 const SELECTED = "selected";
 const MOVE_ACTIONS = "move-actions";
 const GET_ACTIONS = "get-actions";
@@ -93,7 +99,7 @@ const OTHER_ACTIONS = "other-actions";
     });
 
     function init(gameData) {
-        var doorDefs = gameData.getDefs(DEF_DOORS);
+        var doorDefs = gameData.getDefs(Category.DOORS);
         for(let i in gameData.doors) {
             var door = new Door(gameData.doors[i], doorDefs);
             gameData.doors[i] = door;
@@ -106,8 +112,8 @@ const OTHER_ACTIONS = "other-actions";
                     };
                 }
                 var room = gameData.rooms[roomName];
-                if (!room.hasOwnProperty(DEF_DOORS)) {
-                  room[DEF_DOORS] = [];
+                if (!room.hasOwnProperty(Category.DOORS)) {
+                  room[Category.DOORS] = [];
                 }
                 gameData.rooms[roomName].doors.push(door);
             }
@@ -118,7 +124,7 @@ const OTHER_ACTIONS = "other-actions";
         }
 
         // Validate items
-        let itemDefs = gameData.getDefs(DEF_ITEMS);
+        let itemDefs = gameData.getDefs(Category.ITEMS);
         for (let roomId in gameData.rooms) {
           let room = gameData.rooms[roomId];
           if (room.items) {
@@ -359,6 +365,7 @@ const OTHER_ACTIONS = "other-actions";
       constructor(json) {
         Object.assign(this, json);
         this.transient = {};
+
       }
 
       getDefs(defType) {
