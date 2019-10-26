@@ -148,11 +148,16 @@ const OTHER_ACTIONS = "other-actions";
          }
         }
 
-        var scheduler = buckets.PriorityQueue(function(a, b){
-            // TODO unit test
-            return b.time - a.time;
-        });
-        gameData.scheduler = scheduler;
+        if (!gameData.scheduler) {
+          gameData.scheduler = buckets.PriorityQueue(function(a, b){
+              // TODO unit test
+              return b.time - a.time;
+          });
+        } else {
+          // todo
+          throw new Error("Scheduler persistence not implemented");
+        }
+
     }
 
     function gameLoop(gameData) {
@@ -171,7 +176,7 @@ const OTHER_ACTIONS = "other-actions";
 
        // Queue new actions
         for (let actor of gameData.actors) {
-            if (!gameData.isBusy(actor.name)) {
+            if (!gameData.isBusy(actor.id)) {
                 // AI actions
                 // TODO Different supported actions by actor
                 var choices = getChoices(actor, gameData);
@@ -226,7 +231,7 @@ const OTHER_ACTIONS = "other-actions";
         }
         for (let door of room.doors) {
             if (!door.locked) {
-              addIfSupported(new Action(Actions.MOVE, door.other(room.name), actor));
+              addIfSupported(new Action(Actions.MOVE, door.other(room.id), actor));
             } else {
               // TODO If actor supported
               addIfSupported(new Action(Actions.UNLOCK, door, actor));
@@ -265,13 +270,13 @@ const OTHER_ACTIONS = "other-actions";
       var charTabs = document.getElementById("characters");
       for (let pc of gameData.getPcs()) {
         var newButton = document.createElement("BUTTON");
-        newButton.innerHTML = pc.name;
+        newButton.innerHTML = pc.id;
         newButton.onclick=function(){
-          selectPc(pc.name, gameData);
+          selectPc(pc.id, gameData);
           draw(gameData);
         };
         charTabs.appendChild(newButton);
-        view.pcTabs[pc.name] = newButton;
+        view.pcTabs[pc.id] = newButton;
       }
 
       view.menu = {};
@@ -380,7 +385,7 @@ const OTHER_ACTIONS = "other-actions";
       }
 
       isBusy(actorId) {
-        var busyActors = this.scheduler.toArray().map((a)=>a.actor.name); // TODO non-actors
+        var busyActors = this.scheduler.toArray().map((a)=>a.actor.id); // TODO non-actors
         return busyActors.includes(actorId);
       }
     }
@@ -388,13 +393,8 @@ const OTHER_ACTIONS = "other-actions";
     class Actor {
       constructor(json) {
         Object.assign(this, json);
-        if (!this.name) {
-          this.name = this.id;
-        } else if (!this.id) {
-          this.id = this.name;
-        }
         if (!this.id) {
-          throw Error("Actor has no id or name");
+          throw Error("Actor has no id");
         }
         // TODO default or require: inventory, attack
         // TODO random location option
@@ -440,13 +440,13 @@ const OTHER_ACTIONS = "other-actions";
             case Actions.UNLOCK:
               return "Unlock Grate"; // TODO localize?
             case Actions.ATTACK:
-              return "Attack " + this.target.name;
+              return "Attack " + this.target.id;
             case Actions.GET:
-              return this.target.name;
+              return this.target.id;
             case Actions.DROP:
-              return "Drop " + thi.target.name;
+              return "Drop " + thi.target.id;
             case Actions.USE:
-              return "Use " + this.target.name;
+              return "Use " + this.target.id;
             default:
               throw new Error("Unsupported action text: " + this.type);
           }
@@ -456,18 +456,18 @@ const OTHER_ACTIONS = "other-actions";
             let type = this.type;
             switch(type) {
               case Actions.MOVE:
-                return this.actor.name + " moved to " + this.target + ".";
+                return this.actor.id + " moved to " + this.target + ".";
               case Actions.UNLOCK:
-                return this.actor.name + " unlocked " + this.target.toString() + ".";
+                return this.actor.id + " unlocked " + this.target.toString() + ".";
               case Actions.ATTACK:
                 // TODO passive voice?
-                return this.actor.name + " attacked " + this.target.name + ".";
+                return this.actor.id + " attacked " + this.target.id + ".";
               case Actions.GET:
-                return this.actor.name + " picked up " + this.target.name + ".";
+                return this.actor.id + " picked up " + this.target.id + ".";
               case Actions.DROP:
-                return this.actor.name + " dropped " + this.target.name + ".";
+                return this.actor.id + " dropped " + this.target.id + ".";
               case Actions.USE:
-                return this.actor.name + " used " + this.target.name + ".";
+                return this.actor.id + " used " + this.target.id + ".";
             }
 
             return "UNHANDLED EVENT:" + JSON.stringify(event);
@@ -502,15 +502,12 @@ const OTHER_ACTIONS = "other-actions";
         // Apply args
         Object.assign(this, json);
         this.id = roomId;
-        if(!this.hasOwnProperty("name")) {
-          this.name = this.id;
-        }
       }
 
-      links(){
+      getLinks(){
           var out = [];
           for (let door of this.doors) {
-              out.push(door.other(this.name));
+              out.push(door.other(this.id));
           }
           return out;
 

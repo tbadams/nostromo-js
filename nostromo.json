@@ -376,22 +376,22 @@
   },
   "actors": [
     {
-      "name": "Ripley",
+      "id": "Ripley",
       "ai": "player",
       "roomName": "bridge"
     },
     {
-      "name": "Parker",
+      "id": "Parker",
       "ai": "player",
       "roomName": "bridge"
     },
     {
-      "name": "Lambert",
+      "id": "Lambert",
       "ai": "player",
       "roomName": "bridge"
     },
     {
-      "name": "Alien",
+      "id": "Alien",
       "ai": "classic",
       "actions":[
         "move", "attack", "unlock"
@@ -400,7 +400,7 @@
       "roomName": "shuttle bay"
     },
     {
-      "name": "Cat",
+      "id": "Cat",
       "ai": "wander",
       "actions":[
         "move"
