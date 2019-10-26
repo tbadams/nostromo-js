@@ -356,6 +356,11 @@
     {
       "special": [
         "self-destruct"
+      ],
+      "items":[
+        {"type":"Motion Tracker"},
+        {"type":"Incinerator"},
+        {"type":"Incinerator"}
       ]
     },
     "cryo lab":{
@@ -365,7 +370,7 @@
     },
     "lab":{
       "items":[
-        "Cat Box"
+        {"type":"Cat Box"}
       ]
     }
   },
@@ -421,6 +426,10 @@
       "Electric Prod": {
         "damage": "??",
         "bleed": false
+      },
+      "Incinerator":{
+        "damage":10,
+        "bleed":false
       },
       "Cat Box": {
         "cat": false

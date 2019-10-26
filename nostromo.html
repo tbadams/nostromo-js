@@ -34,10 +34,15 @@
 
 /*
 TODO:
+  combat
   learn css
   fix room names / IDs
+  split htm and js
   get rid of event log space
   names, like characters -> pcs
+  scopable event log
+  upside down event log?
+  map display
   finish map
   make movie accurate map
   make fan recreation accurate map
@@ -118,8 +123,9 @@ const OTHER_ACTIONS = "other-actions";
           let room = gameData.rooms[roomId];
           if (room.items) {
             let items = room.items;
-            for (let item of items) {
-              // TODO uhhhhh
+            for (let i in items) {
+              let item = items[i];
+
             }
           }
         }
@@ -212,6 +218,12 @@ const OTHER_ACTIONS = "other-actions";
             out.push(action);
           }
         }
+        if(room.items) {
+          let items = room.items;
+          for (let item of items) {
+            addIfSupported(new Action(Actions.GET, item, actor));
+          }
+        }
         for (let door of room.doors) {
             if (!door.locked) {
               addIfSupported(new Action(Actions.MOVE, door.other(room.name), actor));
@@ -231,15 +243,6 @@ const OTHER_ACTIONS = "other-actions";
         }
 
         // Items
-        for (let roomId in gameData.rooms) {
-          let aRoom = gameData.rooms[roomId];
-          if(aRoom.items) {
-            let items = aRoom.items;
-            for (let item of items) {
-            addIfSupported(new Action(Actions.GET, item, actor));
-            }
-          }
-        }
         if (actor.items) {
           let items = actor.items;
           for (let item of items) {
@@ -535,6 +538,12 @@ const OTHER_ACTIONS = "other-actions";
         toString() {
             return "Door[" + this.rooms[0] + "/" + this.rooms[1] + "]";
         }
+    }
+
+    class Item extends TypedClass {
+      constructor(json, typedefs) {
+        super(json, typedefs);
+      }
     }
 
 
