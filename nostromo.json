@@ -1,4 +1,5 @@
 {
+  "todo":"move category objects to own sub object",
   "doors": [
     {
       "rooms": [
@@ -376,7 +377,67 @@
           "type":"Cat Box"
         }
       ]
+    },
+    {
+      "id":"stores3",
+      "items":[
+        "Spanner"
+      ]
+    },
+    {
+      "id":"mess",
+      "items":[
+          "Fire Extinguisher"
+        ]
+    },
+    {
+      "id":"engine1",
+      "items":[
+          "Fire Extinguisher"
+        ]
+    },
+    {
+      "id":"infirmary",
+      "items":[
+        "Electric Prod"
+      ]
+    },
+    {
+      "id":"lab stores",
+      "items":[
+        "Electric Prod",
+        "Net"
+      ]
+    },
+    {
+      "id":"armory",
+      "items":[
+        "Laser Pistol",
+        "Laser Pistol",
+        "Laser Pistol"
+      ]
+    },
+    {
+      "id":"shuttle bay",
+      "items":[
+        "Harpoon Gun"
+      ]
+    },
+    {
+        "id":"engineering",
+        "items":[
+          "Motion Tracker",
+          "Incinerator"
+        ]
+    },
+    {
+      "id":"engineering stores",
+      "items":[
+        "Spanner",
+        "Electric Prod"
+      ]
     }
+
   ],
   "actors": [
     {
@@ -416,6 +477,18 @@
   ],
   "defs": {
     "ai": {},
+    "actors":{
+      "default":{},
+      "human":{},
+      "cat":{}
+    },
+    "rooms":{
+      "default":{
+        "doors":[],
+        "items":[],
+        "special":[]
+      }
+    },
     "items": {
       "Laser Pistol": {
         "damage": 10
@@ -443,6 +516,9 @@
       },
       "Motion Tracker": {
         "track": 1
+      },
+      "Net":{
+        "net":"???"
       }
     },
     "special": {

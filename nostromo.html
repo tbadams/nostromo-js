@@ -99,59 +99,63 @@ const OTHER_ACTIONS = "other-actions";
     });
 
     function init(gameData) {
-        var doorDefs = gameData.getDefs(Category.DOORS);
-        for(let i in gameData.doors) {
-            var door = new Door(gameData.doors[i], doorDefs);
-            gameData.doors[i] = door;
+      let roomDoorMap = {};
+      for (let key in Category ) {
+        let category = Category[key];
+        let defs = gameData.defs[category];
+        let objects = gameData[category];
+        let lookup = {};
+        gameData.transient.byId[category] = lookup;
 
-            // create rooms
+        for (let i in objects) { // Instantiation pass
+          objects[i] = TypedClass.create(category, objects[i], defs, i);
+          if (lookup[objects[i].id]) {
+            throw Error("Dupe id " + objects[i].id);
+          }
+          lookup[objects[i].id] = objects[i];
+          // category specifc
+          if (category === Category.DOORS) {
+            // Get doors for each room
+            let door = objects[i];
             for (let roomName of door.rooms) {
-                if (!gameData.rooms.hasOwnProperty(roomName)) {
-                    gameData.rooms[roomName] = {
+                if (!roomDoorMap.hasOwnProperty(roomName)) {
+                    roomDoorMap[roomName] = {
+                      id:roomName,
                         doors:[]
                     };
                 }
-                var room = gameData.rooms[roomName];
-                if (!room.hasOwnProperty(Category.DOORS)) {
-                  room[Category.DOORS] = [];
-                }
-                gameData.rooms[roomName].doors.push(door);
+                roomDoorMap[roomName].doors.push(door);
             }
-        }
+          } else if (category === Category.ROOMS) {
 
-        for(let id in gameData.rooms){
-          gameData.rooms[id] = new Room(gameData.rooms[id], id)
-        }
+          } else if (category === Category.ACTORS) {
 
-        // Validate items
-        let itemDefs = gameData.getDefs(Category.ITEMS);
-        for (let roomId in gameData.rooms) {
-          let room = gameData.rooms[roomId];
-          if (room.items) {
-            let items = room.items;
-            for (let i in items) {
-              let item = items[i];
-
-            }
           }
         }
+      }
+
+      // 2nd passes
+      for (let key in roomDoorMap) {
+        let doorList = roomDoorMap[key];
+        let room = gameData.transient.byId.rooms[key];
+        if (!room) {
+          // Room mentioned in doors but not defined, create it
+          let newRoom = new Room(doorList, gameData.defs[Category.ROOMS]);
+          gameData.rooms.push(newRoom);
+          gameData.transient.byId.rooms[newRoom.id] = newRoom;
+        }
+        // Update door list
+        gameData.transient.byId.rooms[doorList.id].doors = doorList.doors;
+      }
+
         // TODO check graph connected
 
         var actors = gameData.actors;
-        gameData.transient.actors = {};
         for (let i in actors) {
-          var actor = new Actor(actors[i]);
-          actors[i] = actor;
-          if (!gameData.rooms.hasOwnProperty(actor.roomName) ){
+          let actor = actors[i];
+          if (!gameData.getByCategoryId(Category.ROOMS, actor.roomName)){
              throw new Error("actor location <" + actor.roomName + "> does not exist");
-         }
-
-         //        Check for dupes, make k-time id lookup
-         if (!gameData.transient.actors.hasOwnProperty(actor.id)) {
-           gameData.transient.actors[actor.id] = actor;
-         } else {
-           throw new Error("Duplicate actor id " + actor.id);
-         }
+           }
         }
 
         if (!gameData.scheduler) {
@@ -183,9 +187,8 @@ const OTHER_ACTIONS = "other-actions";
        // Queue new actions
         for (let actor of gameData.actors) {
             if (!gameData.isBusy(actor.id)) {
-                // AI actions
-                // TODO Different supported actions by actor
                 var choices = getChoices(actor, gameData);
+                // AI actions
                 if (actor.ai != AI_PLAYER) {
 
                     // TODO Specific AIs
@@ -223,7 +226,7 @@ const OTHER_ACTIONS = "other-actions";
 
     function getChoices(actor, gameData) {
         let out = [];
-        let room = gameData.rooms[actor.roomName];
+        let room = gameData.getByCategoryId(Category.ROOMS, actor.roomName);
         let addIfSupported = (action)=>{
           if(action.actor.actions.includes(action.type)) {
             out.push(action);
@@ -317,7 +320,7 @@ const OTHER_ACTIONS = "other-actions";
 
       // menu
       if(gameData.pcSelected()) {
-        var pc = gameData.getActor(gameData.selected);
+        var pc = gameData.getByCategoryId(Category.ACTORS, gameData.selected);
         var choices = getChoices(pc, gameData);
         var choicesByType = Action.byType(choices);
         // Move actions
@@ -365,7 +368,7 @@ const OTHER_ACTIONS = "other-actions";
       constructor(json) {
         Object.assign(this, json);
         this.transient = {};
-
+        this.transient.byId = {};
       }
 
       getDefs(defType) {
@@ -373,6 +376,14 @@ const OTHER_ACTIONS = "other-actions";
             return this.defs[defType];
         }
         throw Error("No defs type '" + defType + "'.")
+      }
+
+      getCategoryMap(category) {
+        return this.transient.byId[category];
+      }
+
+      getByCategoryId(category, id) {
+        return this.transient.byId[category][id];
       }
 
       getPcs() {
@@ -384,37 +395,9 @@ const OTHER_ACTIONS = "other-actions";
             && this.selected != null;
       }
 
-      getActor(id) {
-        if (this.transient.actors.hasOwnProperty(id)) {
-          return this.transient.actors[id];
-        }
-        throw Error("No actor with id " + id);
-      }
-
       isBusy(actorId) {
         var busyActors = this.scheduler.toArray().map((a)=>a.actor.id); // TODO non-actors
         return busyActors.includes(actorId);
-      }
-    }
-
-    class Actor {
-      constructor(json) {
-        Object.assign(this, json);
-        if (!this.id) {
-          throw Error("Actor has no id");
-        }
-        // TODO default or require: inventory, attack
-        // TODO random location option
-        if (!this.hasOwnProperty("roomName")) {
-            throw new Error("No location:" + JSON.stringify(actor));
-        }
-        // Assign default allowed actions (all)
-        if (!this.actions) {
-          this.actions = [];
-          for (let type in Actions) {
-            this.actions.push(Actions[type]);
-          }
-        }
       }
     }
 
@@ -483,8 +466,9 @@ const OTHER_ACTIONS = "other-actions";
 
     class TypedClass {
 
-        constructor(json, typeDefs) {
+        constructor(json, typeDefs, id) {
             // Assign characteristics hierarchically
+            this.id = id; // Prefer id from data
             if (typeDefs.hasOwnProperty(DEF_DEFAULT)) {  // Type default
                 Object.assign(this, typeDefs[DEF_DEFAULT]);
             }
@@ -497,18 +481,55 @@ const OTHER_ACTIONS = "other-actions";
                 }
             }
             Object.assign(this, json); // Specific instance
+
+            // Validate common properties
+            if (!this.id) {
+              throw Error("Typed object has no id");
+            }
+        }
+
+        static create(category, json, def, id) {
+          switch(category) {
+            case Category.ACTORS:
+              return new Actor(json, def, id);
+            case Category.DOORS:
+              return new Door(json, def, "door" + id);
+            case Category.ITEMS:
+              return new Item(json, def, id);
+            case Category.ROOMS:
+              return new Room(json, def, id);
+            default:
+              throw new Error("Unsupported category " + category);
+          }
         }
     }
 
-    class Room {
-      constructor(json, roomId) {
-        // decalre empty lists
-        this.doors = [];
-        this.special = [];
-        this.items = [];
-        // Apply args
-        Object.assign(this, json);
-        this.id = roomId;
+    class Actor extends TypedClass {
+      constructor(json, defs) {
+        super(json, defs);
+
+        // TODO default or require: inventory, attack
+        // TODO random location option
+        if (!this.hasOwnProperty("roomName")) {
+            throw new Error("No location:" + JSON.stringify(actor));
+        }
+        // Assign default allowed actions (all)
+        if (!this.actions) {
+          this.actions = [];
+          for (let type in Actions) {
+            this.actions.push(Actions[type]);
+          }
+        }
+      }
+    }
+
+    class Room extends TypedClass {
+      constructor(json, defs, id) {
+        super(json, defs, id)
+        // declare default variables
+        if (!this.doors) {this.doors = [];}
+        if (!this.special) {this.special = [];}
+        if (!this.items) {this.items=[];}
       }
 
       getLinks(){
@@ -522,8 +543,8 @@ const OTHER_ACTIONS = "other-actions";
       }};
 
     class Door extends TypedClass {
-        constructor(json, typeDefs) {
-            super(json, typeDefs);
+        constructor(json, typeDefs, id) {
+            super(json, typeDefs, id);
             if (this.rooms.length != 2) {
                 throw new Error("door with " + this.rooms.length + " rooms");
             }
