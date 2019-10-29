@@ -204,6 +204,13 @@ const OTHER_ACTIONS = "other-actions";
             }
         }
 
+        // cull newly invalid actions
+        let contents = scheduler.toArray();
+        contents = contents.filter((action)=>action.isValid(gameData));
+        scheduler.clear();
+        for(let action of contents) {
+          scheduler.add(action);
+        }
         // TODO cleanup, maintenance (?)
        gameData.time = gameData.time + 1;
 
@@ -432,6 +439,7 @@ const OTHER_ACTIONS = "other-actions";
         }
 
         isValid(gameData) {
+          if (!gameData) {throw new Error("NO MORE NULL GAMEDATA");}
           let actor = this.actor;
           let target = this.target;
           let actorRoom = gameData
