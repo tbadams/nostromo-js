@@ -58,6 +58,9 @@ const Actions = {
   DROP:"drop",
   USE:"use"
 };
+const Events = {
+  LOG:"log"
+};
 const Category = {
   DOORS:"doors",
   ITEMS:"items",
@@ -181,7 +184,7 @@ const OTHER_ACTIONS = "other-actions";
             eventBus.push(scheduler.dequeue());
         }
         for (let event of eventBus) {
-            handleAction(event, gameData);
+            Action.handleAction(event, gameData);
         }
 
        // Queue new actions
@@ -193,7 +196,7 @@ const OTHER_ACTIONS = "other-actions";
 
                     // TODO Specific AIs
 
-                    takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
+                    Action.takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
 
                 } else {
                      // TODO handle input
@@ -205,24 +208,6 @@ const OTHER_ACTIONS = "other-actions";
        gameData.time = gameData.time + 1;
 
        draw(gameData);
-    }
-
-    function handleAction(event, gameData) {
-        if (event.type === Actions.MOVE) {
-            event.actor.roomName = event.target
-        } else if (event.type === Actions.UNLOCK) {
-            event.target.locked = false;
-        }
-        var log = document.getElementById("events");
-        log.innerHTML= log.innerHTML + (event.getEventText(gameData) + "<br/>");
-    }
-
-    function takeAction(actor, action, gameData) { // todo rename queue
-        if (action.isValid(gameData)) {
-          var length = 5; // TODO ??
-          action.time = gameData.time + length;
-          gameData.scheduler.enqueue(action);
-        }
     }
 
     function initUi(gameData) {
@@ -288,7 +273,7 @@ const OTHER_ACTIONS = "other-actions";
             var newButton = document.createElement("BUTTON");
             newButton.innerHTML = action.getMenuText();
             newButton.onclick=function(){
-              takeAction(pc, action, gameData)
+              Action.takeAction(pc, action, gameData)
               draw(gameData);
             };
             switch(action.type) {
@@ -426,6 +411,26 @@ const OTHER_ACTIONS = "other-actions";
             return out;
         }
 
+        static handleAction(event, gameData) {
+            if (event.type === Actions.MOVE) {
+                event.actor.roomName = event.target
+            } else if (event.type === Actions.UNLOCK) {
+                event.target.locked = false;
+            }
+            var log = document.getElementById("events");
+            log.innerHTML= log.innerHTML + (event.getEventText(gameData) + "<br/>");
+        }
+
+        static takeAction(actor, action, gameData) { // todo rename queue
+            if (action.isValid(gameData)) {
+              var length = 5; // TODO ??
+              action.time = gameData.time + length;
+              gameData.scheduler.enqueue(action);
+            } else {
+              gameData.scheduler.enqueue(new Action(Events.LOG, "invalid action taken", 0));
+            }
+        }
+
         isValid(gameData) {
           let actor = this.actor;
           let target = this.target;
@@ -444,6 +449,8 @@ const OTHER_ACTIONS = "other-actions";
               return actor.items.includes(target);
             case Actions.USE:
               actorRoom.items.includes(target) || actor.items.includes(target);
+            case Events.LOG:
+              return true;
             default:
               throw new Error("Unsupported action validation: " + this.type);
           }
@@ -485,6 +492,9 @@ const OTHER_ACTIONS = "other-actions";
                 return this.actor.id + " dropped " + this.target.id + ".";
               case Actions.USE:
                 return this.actor.id + " used " + this.target.id + ".";
+              case Events.LOG:
+                // TODO debug flag
+                return "Log: " + target;
             }
 
             return "UNHANDLED EVENT:" + JSON.stringify(event);
