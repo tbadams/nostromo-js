@@ -187,7 +187,7 @@ const OTHER_ACTIONS = "other-actions";
        // Queue new actions
         for (let actor of gameData.actors) {
             if (!gameData.isBusy(actor.id)) {
-                var choices = getChoices(actor, gameData);
+                var choices = Action.getChoices(actor, gameData);
                 // AI actions
                 if (actor.ai != AI_PLAYER) {
 
@@ -218,55 +218,11 @@ const OTHER_ACTIONS = "other-actions";
     }
 
     function takeAction(actor, action, gameData) { // todo rename queue
-      // TODO check action is still valid
-        var length = 5; // TODO ??
-        action.time = gameData.time + length;
-        gameData.scheduler.enqueue(action);
-    }
-
-    function getChoices(actor, gameData) {
-        let out = [];
-        let room = gameData.getByCategoryId(Category.ROOMS, actor.roomName);
-        let addIfSupported = (action)=>{
-          if(action.actor.actions.includes(action.type)) {
-            out.push(action);
-          }
+        if (action.isValid(gameData)) {
+          var length = 5; // TODO ??
+          action.time = gameData.time + length;
+          gameData.scheduler.enqueue(action);
         }
-        if(room.items) {
-          let items = room.items;
-          for (let item of items) {
-            addIfSupported(new Action(Actions.GET, item, actor));
-          }
-        }
-        for (let door of room.doors) {
-            if (!door.locked) {
-              addIfSupported(new Action(Actions.MOVE, door.other(room.id), actor));
-            } else {
-              // TODO If actor supported
-              addIfSupported(new Action(Actions.UNLOCK, door, actor));
-            }
-        }
-        // Combat
-        let actorsHere = [];
-        for (let otherActor of gameData.actors ) {
-          if (otherActor.roomName === actor.roomName
-              && otherActor.id != actor.id) {
-                // TODO Cat-catching
-              addIfSupported(new Action(Actions.ATTACK, otherActor, actor));
-          }
-        }
-
-        // Items
-        if (actor.items) {
-          let items = actor.items;
-          for (let item of items) {
-          addIfSupported(new Action(Actions.USE, item, actor));
-          addIfSupported(new Action(Actions.DROP, item, actor));
-          }
-        }
-
-
-        return out;
     }
 
     function initUi(gameData) {
@@ -321,8 +277,7 @@ const OTHER_ACTIONS = "other-actions";
       // menu
       if(gameData.pcSelected()) {
         var pc = gameData.getByCategoryId(Category.ACTORS, gameData.selected);
-        var choices = getChoices(pc, gameData);
-        var choicesByType = Action.byType(choices);
+        var choices = Action.getChoices(pc, gameData);
         // Move actions
         let menu = view.menu;
         for(let subview in menu) {
@@ -403,6 +358,10 @@ const OTHER_ACTIONS = "other-actions";
 
     class Action {
         constructor(type, target, actor) {
+          if (!type || !target || !actor)
+         {
+           throw new Error("No null params allowed for Action");
+         }
             this.type = type;
             this.target = target;
             this.actor = actor;
@@ -420,7 +379,75 @@ const OTHER_ACTIONS = "other-actions";
             aggregate[next.type].push(next);
           }
           return aggregate;
+        }
+
+        static getChoices(actor, gameData) {
+            let out = [];
+            let room = gameData.getByCategoryId(Category.ROOMS, actor.roomName);
+            let addIfSupported = (action)=>{
+              if(action.actor.actions.includes(action.type)) {
+                out.push(action);
+              }
+            }
+            if(room.items) {
+              let items = room.items;
+              for (let item of items) {
+                addIfSupported(new Action(Actions.GET, item, actor));
+              }
+            }
+            for (let door of room.doors) {
+                if (!door.locked) {
+                  addIfSupported(new Action(Actions.MOVE, door.other(room.id), actor));
+                } else {
+                  // TODO If actor supported
+                  addIfSupported(new Action(Actions.UNLOCK, door, actor));
+                }
+            }
+            // Combat
+            let actorsHere = [];
+            for (let otherActor of gameData.actors ) {
+              if (otherActor.roomName === actor.roomName
+                  && otherActor.id != actor.id) {
+                    // TODO Cat-catching
+                  addIfSupported(new Action(Actions.ATTACK, otherActor, actor));
+              }
+            }
+
+            // Items
+            if (actor.items) {
+              let items = actor.items;
+              for (let item of items) {
+              addIfSupported(new Action(Actions.USE, item, actor));
+              addIfSupported(new Action(Actions.DROP, item, actor));
+              }
+            }
+
+
+            return out;
+        }
+
+        isValid(gameData) {
+          let actor = this.actor;
+          let target = this.target;
+          let actorRoom = gameData
+              .getByCategoryId(Category.ROOMS, actor.roomName);
+          switch(this.type) {
+            case Actions.MOVE: // target=roomName
+              return actorRoom.getLinks().includes(target);
+            case Actions.UNLOCK: // target=door object
+              return target.rooms.includes(actor.roomName);
+            case Actions.ATTACK: // actor object
+              return actor.roomName === target.roomName;
+            case Actions.GET: // room item
+              return actorRoom.items.includes(target);
+            case Actions.DROP: // actor item
+              return actor.items.includes(target);
+            case Actions.USE:
+              actorRoom.items.includes(target) || actor.items.includes(target);
+            default:
+              throw new Error("Unsupported action validation: " + this.type);
           }
+        }
 
         getMenuText() {
           // TODO make consistent?
