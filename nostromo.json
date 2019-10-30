@@ -478,15 +478,14 @@
   "defs": {
     "ai": {},
     "actors":{
-      "default":{},
+      "default":{
+        "inventory":2
+      },
       "human":{},
       "cat":{}
     },
     "rooms":{
       "default":{
-        "doors":[],
-        "items":[],
-        "special":[]
       }
     },
     "items": {

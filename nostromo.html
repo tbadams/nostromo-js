@@ -106,6 +106,7 @@ const OTHER_ACTIONS = "other-actions";
       for (let key in Category ) {
         let category = Category[key];
         let defs = gameData.defs[category];
+        let itemDefs = gameData.defs[Category.ITEMS];
         let objects = gameData[category];
         let lookup = {};
         gameData.transient.byId[category] = lookup;
@@ -130,7 +131,11 @@ const OTHER_ACTIONS = "other-actions";
                 roomDoorMap[roomName].doors.push(door);
             }
           } else if (category === Category.ROOMS) {
-
+            let room = objects[i];
+            let roomItems = room.items;
+            for (let j in roomItems) {
+              roomItems[j] = TypedClass.create(Category.ITEMS, roomItems[j], itemDefs, j);
+            }
           } else if (category === Category.ACTORS) {
 
           }
@@ -381,7 +386,7 @@ const OTHER_ACTIONS = "other-actions";
                 out.push(action);
               }
             }
-            if(room.items) {
+            if(room.items && actor.items.length < actor.inventory) {
               let items = room.items;
               for (let item of items) {
                 addIfSupported(new Action(Actions.GET, item, actor));
@@ -419,10 +424,27 @@ const OTHER_ACTIONS = "other-actions";
         }
 
         static handleAction(event, gameData) {
+            if (!event.isValid(gameData)) {return;}
+            let actorRoom = gameData
+                .getByCategoryId(Category.ROOMS, event.actor.roomName);
             if (event.type === Actions.MOVE) {
-                event.actor.roomName = event.target
+                event.actor.roomName = event.target;
             } else if (event.type === Actions.UNLOCK) {
                 event.target.locked = false;
+            } else if (event.type === Actions.ATTACK) {
+                // TODO aaaaugh combat
+            } else if (event.type === Actions.GET) {
+              let item = event.target;
+              actorRoom.items = actorRoom.items.filter((thing)=>thing != item);
+                event.actor.items.push(event.target);
+            } else if (event.type === Actions.DROP) {
+              // Move item to room
+              let item = event.target;
+              // TODO this
+              event.actor.items = event.actor.items.filter((thing)=>thing != item);
+              actorRoom.items.push(item);
+            } else if (event.type === Actions.USE) {
+              // TODO ...use it
             }
             var log = document.getElementById("events");
             log.innerHTML= log.innerHTML + (event.getEventText(gameData) + "<br/>");
@@ -430,12 +452,16 @@ const OTHER_ACTIONS = "other-actions";
 
         static takeAction(actor, action, gameData) { // todo rename queue
             if (action.isValid(gameData)) {
-              var length = 5; // TODO ??
+              var length = Action.duration(action, gameData);
               action.time = gameData.time + length;
               gameData.scheduler.enqueue(action);
             } else {
               gameData.scheduler.enqueue(new Action(Events.LOG, "invalid action taken", 0));
             }
+        }
+
+        static duration(action, gameData) {
+          return 3;
         }
 
         isValid(gameData) {
@@ -452,7 +478,8 @@ const OTHER_ACTIONS = "other-actions";
             case Actions.ATTACK: // actor object
               return actor.roomName === target.roomName;
             case Actions.GET: // room item
-              return actorRoom.items.includes(target);
+              return actorRoom.items.includes(target)
+                && actor.items.length < actor.inventory;
             case Actions.DROP: // actor item
               return actor.items.includes(target);
             case Actions.USE:
@@ -474,11 +501,11 @@ const OTHER_ACTIONS = "other-actions";
             case Actions.ATTACK:
               return "Attack " + this.target.id;
             case Actions.GET:
-              return this.target.id;
+              return this.target.type;
             case Actions.DROP:
-              return "Drop " + thi.target.id;
+              return "Drop " + this.target.type;
             case Actions.USE:
-              return "Use " + this.target.id;
+              return "Use " + this.target.type;
             default:
               throw new Error("Unsupported action text: " + this.type);
           }
@@ -490,16 +517,16 @@ const OTHER_ACTIONS = "other-actions";
               case Actions.MOVE:
                 return this.actor.id + " moved to " + this.target + ".";
               case Actions.UNLOCK:
-                return this.actor.id + " unlocked " + this.target.toString() + ".";
+                return this.actor.id + " unlocked " + this.target.id + ".";
               case Actions.ATTACK:
                 // TODO passive voice?
                 return this.actor.id + " attacked " + this.target.id + ".";
               case Actions.GET:
-                return this.actor.id + " picked up " + this.target.id + ".";
+                return this.actor.id + " picked up " + this.target.type + ".";
               case Actions.DROP:
-                return this.actor.id + " dropped " + this.target.id + ".";
+                return this.actor.id + " dropped " + this.target.type + ".";
               case Actions.USE:
-                return this.actor.id + " used " + this.target.id + ".";
+                return this.actor.id + " used " + this.target.type + ".";
               case Events.LOG:
                 // TODO debug flag
                 return "Log: " + target;
@@ -538,7 +565,7 @@ const OTHER_ACTIONS = "other-actions";
             case Category.ACTORS:
               return new Actor(json, def, id);
             case Category.DOORS:
-              return new Door(json, def, "door" + id);
+              return new Door(json, def, id);
             case Category.ITEMS:
               return new Item(json, def, id);
             case Category.ROOMS:
@@ -552,6 +579,7 @@ const OTHER_ACTIONS = "other-actions";
     class Actor extends TypedClass {
       constructor(json, defs) {
         super(json, defs);
+        this.category = Category.ACTORS;
 
         // TODO default or require: inventory, attack
         // TODO random location option
@@ -565,12 +593,17 @@ const OTHER_ACTIONS = "other-actions";
             this.actions.push(Actions[type]);
           }
         }
+
+        if (!this.items) {
+          this.items = [];
+        }
       }
     }
 
     class Room extends TypedClass {
       constructor(json, defs, id) {
         super(json, defs, id)
+        this.category = Category.ROOMS;
         // declare default variables
         if (!this.doors) {this.doors = [];}
         if (!this.special) {this.special = [];}
@@ -589,7 +622,8 @@ const OTHER_ACTIONS = "other-actions";
 
     class Door extends TypedClass {
         constructor(json, typeDefs, id) {
-            super(json, typeDefs, id);
+            super(json, typeDefs, "door" + id);
+            this.category = Category.DOORS;
             if (this.rooms.length != 2) {
                 throw new Error("door with " + this.rooms.length + " rooms");
             }
@@ -611,8 +645,9 @@ const OTHER_ACTIONS = "other-actions";
     }
 
     class Item extends TypedClass {
-      constructor(json, typedefs) {
-        super(json, typedefs);
+      constructor(json, typedefs, id) {
+        super(json, typedefs, "item" + id);
+        this.category = Category.ITEMS;
       }
     }
 
