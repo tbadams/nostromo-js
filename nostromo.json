@@ -497,6 +497,7 @@
     },
     "rooms":{
       "default":{
+        "health":100
       }
     },
     "items": {

@@ -24,6 +24,12 @@
               <div id="characters" class="characters"></div>
       <div class="status">
         status&nbsp;
+        <div id="room-line">
+          <div id="room-name"></div>
+          <div id="room-health"></div>
+        </div>
+        <div id="pc-status"></div>
+        <div id="room-description"></div>
       </div>
   </body>
 </html>
@@ -96,14 +102,9 @@ const OTHER_ACTIONS = "other-actions";
 
     loadJSON(function(response) {
         let errorPattern = /(\d+).*/g;
+        var parsed;
         try {
-          let parsed = JSON.parse(response);
-          var gameData = new GameData(parsed);
-          init(gameData);
-          initUi(gameData);
-          setInterval(function () {
-              gameLoop(gameData);
-          }, TICK_LENGTH);
+          parsed = JSON.parse(response);
         } catch (e) {
           if (e instanceof SyntaxError) {
             const grabRadius = 20;
@@ -119,7 +120,14 @@ const OTHER_ACTIONS = "other-actions";
           } else {
             alert('Error: ' + e);
           }
+          return;
         }
+        var gameData = new GameData(parsed);
+        init(gameData);
+        initUi(gameData);
+        setInterval(function () {
+            gameLoop(gameData);
+        }, TICK_LENGTH);
     });
 
     function init(gameData) {
@@ -268,10 +276,27 @@ const OTHER_ACTIONS = "other-actions";
       view.menu.combat = document.getElementById(COMBAT_ACTIONS);
       view.menu.other = document.getElementById(OTHER_ACTIONS);
 
+      view.status = {}
+      view.status.roomName = document.getElementById("room-name");
+      view.status.roomHealth = document.getElementById("room-health");
+      view.status.pcStatus = document.getElementById("pc-status");
+      view.status.roomDescription = document.getElementById("room-description");
+
       // Validate
-      for (let subview in view) {
-        if (view[subview] === undefined || view[subview] === null) {
+      validateView(view);
+    }
+
+    function validateView(view) {
+      for (let key in view) {
+        let subview = view[key];
+        if (!subview) {
           throw Error("Empty view handle " + subview);
+        }
+        for (let subkey in subview) {
+          let subsubview = subview[subkey];
+          if (!subsubview) {
+            throw Error("Empty subview handle " + subview);
+          }
         }
       }
     }
@@ -292,7 +317,7 @@ const OTHER_ACTIONS = "other-actions";
         }
       }
 
-      // menu
+      // menu & status
       if(gameData.pcSelected()) {
         var pc = gameData.getByCategoryId(Category.ACTORS, gameData.selected);
         var choices = Action.getChoices(pc, gameData);
@@ -326,6 +351,13 @@ const OTHER_ACTIONS = "other-actions";
 
           }
         } // else busy
+
+        // status
+        let status = view.status;
+        let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
+        view.status.roomName.innerHTML = room.id;
+        view.status.roomHealth.innerHTML = room.health + "%";
+        view.status.pcStatus.innerHTML = pc.id + " is something and stable."
 
       }
 
@@ -440,7 +472,6 @@ const OTHER_ACTIONS = "other-actions";
               addIfSupported(new Action(Actions.DROP, item, actor));
               }
             }
-
 
             return out;
         }
