@@ -509,7 +509,7 @@
       "Spanner": {
         "name": "Spanner",
         "weapon":{
-          "damage":10,
+          "damage":10
         }
       },
       "Electric Prod": {
