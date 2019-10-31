@@ -457,21 +457,17 @@
     },
     {
       "id": "Alien",
-      "ai": "classic",
-      "actions":[
-        "move", "attack", "unlock"
-      ],
-      "inventory": 0,
+      "type":"creature",
       "roomName": "shuttle bay"
     },
     {
-      "id": "Cat",
+      "type": "cat",
+      "id":"Cat",
       "ai": "wander",
       "actions":[
         "move"
       ],
-      "inventory": 0,
-      "small": true,
+
       "roomName": "corridor2"
     }
   ],
@@ -479,10 +475,25 @@
     "ai": {},
     "actors":{
       "default":{
-        "inventory":2
+        "inventory":2,
+        "health":40,
+        "attackable":true
       },
       "human":{},
-      "cat":{}
+      "cat":{
+        "inventory": 0,
+        "attackable":false
+      },
+      "creature":{
+        "ai": "wumpus",
+        "actions":[
+          "move", "attack", "unlock"
+        ],
+        "weapon":{
+          "damage":20
+        },
+        "inventory": 0,
+      }
     },
     "rooms":{
       "default":{
@@ -497,21 +508,30 @@
       },
       "Spanner": {
         "name": "Spanner",
-        "damage": 10
+        "weapon":{
+          "damage":10,
+        }
       },
       "Electric Prod": {
-        "damage": "??",
-        "bleed": false
+        "weapon":{
+          "damage":10,
+          "nobleed": true
+        }
       },
       "Incinerator":{
-        "damage":10,
-        "bleed":false
+        "weapon":{
+          "damage":10,
+          "nobleed": true
+        }
       },
       "Cat Box": {
         "cat": false
       },
       "Harpoon Gun": {
-        "damage": "iunno"
+        "weapon":{
+          "damage":10,
+          "nobleed":"???"
+        }
       },
       "Motion Tracker": {
         "track": 1

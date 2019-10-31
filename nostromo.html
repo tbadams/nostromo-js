@@ -40,12 +40,14 @@ TODO:
   split htm and js
   get rid of event log space
   names, like characters -> pcs
+  deep copy def obj... shit
   scopable event log
   upside down event log?
   map display
   finish map
   make movie accurate map
   make fan recreation accurate map
+  json case insensitive?
 
 */
 
@@ -424,7 +426,9 @@ const OTHER_ACTIONS = "other-actions";
         }
 
         static handleAction(event, gameData) {
+          // TODO split initiating action into multiple effects
             if (!event.isValid(gameData)) {return;}
+            let actor = event.actor;
             let actorRoom = gameData
                 .getByCategoryId(Category.ROOMS, event.actor.roomName);
             if (event.type === Actions.MOVE) {
@@ -432,7 +436,13 @@ const OTHER_ACTIONS = "other-actions";
             } else if (event.type === Actions.UNLOCK) {
                 event.target.locked = false;
             } else if (event.type === Actions.ATTACK) {
-                // TODO aaaaugh combat
+                let weapon = actor.getWeapon();
+                if (weapon) {
+                  target.health -= weapon.damage;
+                  if(!weapon.nobleed) {
+                    // TODO bleed
+                  }
+                }
             } else if (event.type === Actions.GET) {
               let item = event.target;
               actorRoom.items = actorRoom.items.filter((thing)=>thing != item);
@@ -597,6 +607,18 @@ const OTHER_ACTIONS = "other-actions";
         if (!this.items) {
           this.items = [];
         }
+      }
+
+      getWeapon() {
+        if (this.items.length > 0 && this.items[0].damage) {
+          // has weapon equipped
+          return this.items[0];
+        }
+        return this.weapon;
+      }
+
+      isAlive() {
+        return health > 0;
       }
     }
 
