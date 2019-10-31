@@ -98,6 +98,12 @@ const OTHER_ACTIONS = "other-actions";
         let errorPattern = /(\d+).*/g;
         try {
           let parsed = JSON.parse(response);
+          var gameData = new GameData(parsed);
+          init(gameData);
+          initUi(gameData);
+          setInterval(function () {
+              gameLoop(gameData);
+          }, TICK_LENGTH);
         } catch (e) {
           if (e instanceof SyntaxError) {
             const grabRadius = 20;
@@ -113,14 +119,7 @@ const OTHER_ACTIONS = "other-actions";
           } else {
             alert('Error: ' + e);
           }
-          return;
         }
-        var gameData = new GameData(parsed);
-        init(gameData);
-        initUi(gameData);
-        setInterval(function () {
-            gameLoop(gameData);
-        }, TICK_LENGTH)
     });
 
     function init(gameData) {
@@ -404,7 +403,8 @@ const OTHER_ACTIONS = "other-actions";
             let out = [];
             let room = gameData.getByCategoryId(Category.ROOMS, actor.roomName);
             let addIfSupported = (action)=>{
-              if(action.actor.actions.includes(action.type)) {
+              if (action.actor.actions.includes(action.type)
+                  && action.isValid(gameData)) {
                 out.push(action);
               }
             }
@@ -451,6 +451,7 @@ const OTHER_ACTIONS = "other-actions";
             let actor = event.actor;
             let actorRoom = gameData
                 .getByCategoryId(Category.ROOMS, event.actor.roomName);
+            let target = event.target;
             if (event.type === Actions.MOVE) {
                 event.actor.roomName = event.target;
             } else if (event.type === Actions.UNLOCK) {
@@ -506,7 +507,8 @@ const OTHER_ACTIONS = "other-actions";
             case Actions.UNLOCK: // target=door object
               return target.rooms.includes(actor.roomName);
             case Actions.ATTACK: // actor object
-              return actor.roomName === target.roomName;
+              return actor.roomName === target.roomName
+                  && actor.getWeapon();
             case Actions.GET: // room item
               return actorRoom.items.includes(target)
                 && actor.items.length < actor.inventory;
@@ -630,9 +632,9 @@ const OTHER_ACTIONS = "other-actions";
       }
 
       getWeapon() {
-        if (this.items.length > 0 && this.items[0].damage) {
+        if (this.items.length > 0 && this.items[0].weapon) {
           // has weapon equipped
-          return this.items[0];
+          return this.items[0].weapon;
         }
         return this.weapon;
       }

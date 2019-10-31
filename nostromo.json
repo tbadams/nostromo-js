@@ -492,7 +492,7 @@
         "weapon":{
           "damage":20
         },
-        "inventory": 0,
+        "inventory": 0
       }
     },
     "rooms":{
