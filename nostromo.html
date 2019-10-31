@@ -25,8 +25,8 @@
       <div class="status">
         status&nbsp;
         <div id="room-line">
-          <div id="room-name"></div>
-          <div id="room-health"></div>
+          <span id="room-name"></span>
+          <span id="room-health"></span>
         </div>
         <div id="pc-status"></div>
         <div id="room-description"></div>
@@ -76,6 +76,11 @@ const Category = {
   ROOMS:"rooms",
   AI:"ai",
   SPECIAL:"special"
+};
+const Health = {
+  OK:"OK",
+  WOUNDED:"wounded",
+  DEAD:"dead"
 };
 const AI_PLAYER = "player";
 const DEF_DEFAULT = "default";
@@ -302,7 +307,13 @@ const OTHER_ACTIONS = "other-actions";
     }
 
     function selectPc(pcId, gameData) {
-      gameData.selected = pcId;
+      let pc = gameData.getByCategoryId(Category.ACTORS, pcId);
+      if (pc.ai === AI_PLAYER && pc.isAlive()) {
+        gameData.selected = pcId;
+      } else {
+        gameData.selected = null;
+      }
+
     }
 
     function draw(gameData) {
@@ -357,10 +368,19 @@ const OTHER_ACTIONS = "other-actions";
         let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
         view.status.roomName.innerHTML = room.id;
         view.status.roomHealth.innerHTML = room.health + "%";
-        view.status.pcStatus.innerHTML = pc.id + " is something and stable."
-
+        let healthText;
+        if (pc.hp > pc.health / 2) {
+          healthText = "OK";
+        } else if (pc.hp > 0) {
+          healthText = "wounded";
+        } else if (!pc.isAlive()) {
+          healthText = "dead";
+        } else {
+          healthText = "drunk";
+        }
+        view.status.pcStatus.innerHTML = pc.id + " is " + healthText
+            + " and stable."
       }
-
     }
 
     function emptyElem(elem) {
@@ -490,7 +510,7 @@ const OTHER_ACTIONS = "other-actions";
             } else if (event.type === Actions.ATTACK) {
                 let weapon = actor.getWeapon();
                 if (weapon) {
-                  target.health -= weapon.damage;
+                  target.hp -= weapon.damage;
                   if(!weapon.nobleed) {
                     // TODO bleed
                   }
@@ -646,8 +666,12 @@ const OTHER_ACTIONS = "other-actions";
 
         // TODO default or require: inventory, attack
         // TODO random location option
-        if (!this.hasOwnProperty("roomName")) {
-            throw new Error("No location:" + JSON.stringify(actor));
+        let required = ["roomName", "health"];
+        for (let req of required) {
+          if (!this.hasOwnProperty("roomName")) {
+              throw new Error("No value for " + req + ": "
+                  + JSON.stringify(actor));
+          }
         }
         // Assign default allowed actions (all)
         if (!this.actions) {
@@ -655,6 +679,10 @@ const OTHER_ACTIONS = "other-actions";
           for (let type in Actions) {
             this.actions.push(Actions[type]);
           }
+        }
+
+        if (!this.hp) {
+          this.hp = this.health;
         }
 
         if (!this.items) {
@@ -671,7 +699,7 @@ const OTHER_ACTIONS = "other-actions";
       }
 
       isAlive() {
-        return health > 0;
+        return this.hp > 0;
       }
     }
 
