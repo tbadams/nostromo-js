@@ -22,6 +22,11 @@ body {
   border-width: medium;
   display: block;
 }
+
+.menu button {
+  display: block;
+  width:100%
+}
 .status {
   width: 100%
   border-style: solid;
@@ -31,6 +36,10 @@ body {
 
 .tab {
 
+}
+
+.disabled {
+  opacity: 0.6
 }
 
 .tab button {

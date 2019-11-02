@@ -21,7 +21,7 @@
         Other:
         <div id="other-actions"></div>
       </div>
-              <div id="characters" class="characters"></div>
+              <div id="characters"></div>
       <div class="status">
         status&nbsp;
         <div id="room-line">
@@ -41,20 +41,25 @@
 /*
 TODO:
   combat
-  learn css
+  show pending action
+  generic item code
+  BUG item stays the string of type
   fix room names / IDs
   split htm and js
   get rid of event log space
   names, like characters -> pcs
-  deep copy def obj... shit
+  deep copy def obj (?)
   scopable event log
   upside down event log?
+  generate js signature docs
   map display
   finish map
   make movie accurate map
   make fan recreation accurate map
   json case insensitive?
-
+  pending action progress bar
+fix stupid json error catching code
+localization??
 */
 
 const TICK_LENGTH = 1000;
@@ -309,7 +314,7 @@ const OTHER_ACTIONS = "other-actions";
     function selectPc(pcId, gameData) {
       let pc = gameData.getByCategoryId(Category.ACTORS, pcId);
       if (pc.ai === AI_PLAYER && pc.isAlive()) {
-        gameData.selected = pcId;
+        gameData.selected = pcId; // TODO rename selectedId
       } else {
         gameData.selected = null;
       }
@@ -325,18 +330,26 @@ const OTHER_ACTIONS = "other-actions";
           tab.style.color = "green";
         } else {
           tab.style.color = "black";
+          if (!gameData.getByCategoryId(Category.ACTORS, pcId).isAlive()) {
+            tab.style.opacity = 0.6;
+          }
         }
       }
 
       // menu & status
+      let menu = view.menu;
+      for(let subview in menu) {
+        emptyElem(menu[subview]);
+      }
+      let status = view.status;
+      for (let key in menu) {
+        emptyElem(menu[key]);
+      }
       if(gameData.pcSelected()) {
         var pc = gameData.getByCategoryId(Category.ACTORS, gameData.selected);
         var choices = Action.getChoices(pc, gameData);
         // Move actions
-        let menu = view.menu;
-        for(let subview in menu) {
-          emptyElem(menu[subview]);
-        }
+
         if (!gameData.isBusy(pc.id)) {
           for(let action of choices) {
             var newButton = document.createElement("BUTTON");
@@ -364,7 +377,7 @@ const OTHER_ACTIONS = "other-actions";
         } // else busy
 
         // status
-        let status = view.status;
+
         let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
         view.status.roomName.innerHTML = room.id;
         view.status.roomHealth.innerHTML = room.health + "%";
@@ -416,8 +429,7 @@ const OTHER_ACTIONS = "other-actions";
       }
 
       pcSelected() {
-        return this.hasOwnProperty(SELECTED) && this.selected != undefined
-            && this.selected != null;
+        return this.selected && this.getByCategoryId(Category.ACTORS, this.selected).isAlive();
       }
 
       isBusy(actorId) {

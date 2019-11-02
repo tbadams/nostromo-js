@@ -387,54 +387,54 @@
     {
       "id":"mess",
       "items":[
-          "Fire Extinguisher"
+          {"type":"Fire Extinguisher"}
         ]
     },
     {
       "id":"engine1",
       "items":[
-          "Fire Extinguisher"
+          {"type":"Fire Extinguisher"}
         ]
     },
     {
       "id":"infirmary",
       "items":[
-        "Electric Prod"
+        {"type":"Electric Prod"}
       ]
     },
     {
       "id":"lab stores",
       "items":[
-        "Electric Prod",
-        "Net"
+        {"type":"Electric Prod"},
+        {"type":"Net"}
       ]
     },
     {
       "id":"armory",
       "items":[
-        "Laser Pistol",
-        "Laser Pistol",
-        "Laser Pistol"
+        {"type":"Laser Pistol"},
+        {"type":"Laser Pistol"},
+        {"type":"Laser Pistol"}
       ]
     },
     {
       "id":"shuttle bay",
       "items":[
-        "Harpoon Gun"
+        {"type":"Harpoon Gun"}
       ]
     },
     {
         "id":"engineering",
         "items":[
-          "Motion Tracker",
-          "Incinerator"
+          {"type":"Motion Tracker"},
+          {"type":"Incinerator"}
         ]
     },
     {
       "id":"engineering stores",
       "items":[
-        "Spanner",
-        "Electric Prod"
+        {"type":"Spanner"},
+        {"type":"Electric Prod"}
       ]
     }
 
