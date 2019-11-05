@@ -43,7 +43,9 @@ TODO:
   combat
   show pending action
   generic item code
-  BUG item stays the string of type
+  disable clicking on dead pc tab
+  ai system
+  widgets and service
   fix room names / IDs
   split htm and js
   get rid of event log space
@@ -342,8 +344,8 @@ const OTHER_ACTIONS = "other-actions";
         emptyElem(menu[subview]);
       }
       let status = view.status;
-      for (let key in menu) {
-        emptyElem(menu[key]);
+      for (let key in status) {
+        emptyElem(status[key]);
       }
       if(gameData.pcSelected()) {
         var pc = gameData.getByCategoryId(Category.ACTORS, gameData.selected);
@@ -377,7 +379,6 @@ const OTHER_ACTIONS = "other-actions";
         } // else busy
 
         // status
-
         let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
         view.status.roomName.innerHTML = room.id;
         view.status.roomHealth.innerHTML = room.health + "%";
@@ -500,8 +501,8 @@ const OTHER_ACTIONS = "other-actions";
             if (actor.items) {
               let items = actor.items;
               for (let item of items) {
-              addIfSupported(new Action(Actions.USE, item, actor));
-              addIfSupported(new Action(Actions.DROP, item, actor));
+                addIfSupported(new Action(Actions.USE, item, actor));
+                addIfSupported(new Action(Actions.DROP, item, actor));
               }
             }
 
@@ -578,7 +579,8 @@ const OTHER_ACTIONS = "other-actions";
             case Actions.DROP: // actor item
               return actor.items.includes(target);
             case Actions.USE:
-              actorRoom.items.includes(target) || actor.items.includes(target);
+              return (actorRoom.items.includes(target) || actor.items.includes(target))
+                  && target.isUsable();
             case Events.LOG:
               return true;
             default:
@@ -763,6 +765,11 @@ const OTHER_ACTIONS = "other-actions";
       constructor(json, typedefs, id) {
         super(json, typedefs, "item" + id);
         this.category = Category.ITEMS;
+      }
+
+      isUsable() {
+        // weapons dpon't count
+        return this.actions && this.actions.length > 0;
       }
     }
 

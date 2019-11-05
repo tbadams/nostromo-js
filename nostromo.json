@@ -502,13 +502,15 @@
     },
     "items": {
       "Laser Pistol": {
-        "damage": 10
+        "damage": 30
       },
       "Fire Extinguisher": {
-        "action": "extinguish"
+        "weapon":{
+          "damage": 10
+        },
+        "actions": ["extinguish"]
       },
       "Spanner": {
-        "name": "Spanner",
         "weapon":{
           "damage":10
         }
@@ -521,24 +523,31 @@
       },
       "Incinerator":{
         "weapon":{
-          "damage":10,
+          "damage":20,
           "nobleed": true
         }
       },
       "Cat Box": {
-        "cat": false
+        "weapon":{
+          "damage":10
+        },
+        "actions":[
+          "capture"
+        ]
       },
       "Harpoon Gun": {
         "weapon":{
-          "damage":10,
-          "nobleed":"???"
+          "damage":50,
+          "splash":true
         }
       },
       "Motion Tracker": {
         "track": 1
       },
       "Net":{
-        "net":"???"
+        "actions":[
+          "capture"
+        ]
       }
     },
     "special": {
