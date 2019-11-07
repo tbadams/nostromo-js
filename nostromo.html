@@ -450,7 +450,7 @@ const VOID = "void"; // Room for when need "nowhere"
     }
 
     class Action {
-        constructor(type, target, actor, source) {
+        constructor(type, target, actor) {
           if (!type || !target || !actor)
          {
            throw new Error("type, target, actor must be non null for Action");
@@ -458,11 +458,7 @@ const VOID = "void"; // Room for when need "nowhere"
             this.type = type;
             this.target = target;
             this.actor = actor;
-            if (source) {
-              this.source = source;
-            } else {
-              this.source = actor;
-            }
+            this.source = actor.getActionMap()[type];
         }
 
         static byType(actions) {
@@ -482,9 +478,9 @@ const VOID = "void"; // Room for when need "nowhere"
         static getChoices(actor, gameData) {
             let out = [];
             let room = gameData.getByCategoryId(Category.ROOMS, actor.roomName);
+            let actionMap = actor.getActionMap();
             let addIfSupported = (action)=>{
-              if (action.actor.getActions().includes(action.type)
-                  && action.isValid(gameData)) {
+              if (actionMap[action.type] && action.isValid(gameData)) {
                 out.push(action);
               }
             }
@@ -516,7 +512,7 @@ const VOID = "void"; // Room for when need "nowhere"
             if (actor.items) {
               let items = actor.items;
               for (let item of items) {
-                addIfSupported(new Action(Actions.USE, item, actor));
+                // addIfSupported(new Action(Actions.USE, item, actor));
                 addIfSupported(new Action(Actions.DROP, item, actor));
               }
             }
@@ -535,7 +531,7 @@ const VOID = "void"; // Room for when need "nowhere"
             } else if (event.type === Actions.UNLOCK) {
                 event.target.locked = false;
             } else if (event.type === Actions.ATTACK) {
-                let weapon = actor.getWeapon();
+                let weapon = event.source;
                 if (weapon) {
                   target.hp -= weapon.damage;
                   if(!weapon.nobleed) {
@@ -555,9 +551,7 @@ const VOID = "void"; // Room for when need "nowhere"
             } else if (event.type === Actions.USE) {
               // TODO ...use it
             } else if (event.type === Actions.CAPTURE) {
-              // Validity check should ensure this item exists and is approriate
-              // TODO But test it, or re-architect
-              actor.items[0].captive = target;
+              event.source.captive = target;
               target.roomName = VOID;
               gameData.actors.splice(gameData.actors.indexOf(target));
             }
@@ -582,7 +576,8 @@ const VOID = "void"; // Room for when need "nowhere"
         isValid(gameData) {
           if (!gameData) {throw new Error("NO MORE NULL GAMEDATA");}
           let actor = this.actor;
-          if (!actor.getActions().includes(this.type)) {
+          let actionMap = actor.getActionMap();
+          if (!actionMap[this.type]) {
             return false;
           }
           let target = this.target;
@@ -594,11 +589,11 @@ const VOID = "void"; // Room for when need "nowhere"
             case Actions.UNLOCK: // target=door object
               return target.rooms.includes(actor.roomName);
             case Actions.ATTACK: // actor object
-              return actor.roomName === target.roomName
-                  && actor.getWeapon() && target.attackable;
+              return actor.roomName === target.roomName && target.attackable
+                  && target.isAlive();
             case Actions.CAPTURE: // actor object
               return actor.roomName === target.roomName
-                  && target.capturable;
+                  && target.capturable && !actionMap[this.type].captive;
             case Actions.GET: // room item
               return actorRoom.items.includes(target)
                 && actor.items.length < actor.inventory;
@@ -727,21 +722,16 @@ const VOID = "void"; // Room for when need "nowhere"
         }
       }
 
-      getWeapon() {
-        if (this.items.length > 0 && this.items[0].weapon) {
-          // has weapon equipped
-          return this.items[0].weapon;
+      getActionMap(){ // make map of actions to source
+        let tempOut = {};
+
+        for (let action of this.actions) {
+          tempOut[action] = this;
         }
-        return this.weapon;
-      }
-
-      getActions(){
-        let tempOut = [];
-
-        tempOut = tempOut.concat(this.actions);
-        // TODO support actions in second place
-        if (this.items && this.items[0] && this.items[0].actions) {
-          tempOut = tempOut.concat(this.items[0].actions);
+        if (this.items[0]) {
+          for (let action of this.items[0].actions) {
+            tempOut[action] = this.items[0]; // TODO collision
+          }
         }
         return tempOut;
       }
@@ -789,21 +779,29 @@ const VOID = "void"; // Room for when need "nowhere"
             }
            throw new Error("room <" + roomName + "> not in doors");
         }
-
-        toString() {
-            return "Door[" + this.rooms[0] + "/" + this.rooms[1] + "]";
-        }
     }
 
     class Item extends TypedClass {
       constructor(json, typedefs, id) {
         super(json, typedefs, "item" + id);
         this.category = Category.ITEMS;
+        if (!this.actions) {
+          this.actions = [];
+        }
+
+        if (this.damage) {
+          this.actions.push(Actions.ATTACK);
+        }
+
+        if (this.hasOwnProperty("captive")) {
+          this.actions.push(Actions.CAPTURE);
+        }
+
       }
 
       isUsable() {
         // weapons dpon't count
-        return this.actions && this.actions.length > 0;
+        return this.actions.length > 0;
       }
     }
 

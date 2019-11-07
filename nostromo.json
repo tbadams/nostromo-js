@@ -472,7 +472,6 @@
         "actions":[
           "move",
           "unlock",
-          "attack",
           "get",
           "drop",
           "use"]
@@ -493,9 +492,7 @@
           "attack",
           "unlock"
         ],
-        "weapon":{
-          "damage":20
-        },
+        "damage":20,
         "inventory": 0
       }
     },
@@ -509,49 +506,33 @@
         "damage": 30
       },
       "Fire Extinguisher": {
-        "weapon":{
-          "damage": 10
-        },
+        "damage": 10,
         "actions": ["extinguish"]
       },
       "Spanner": {
-        "weapon":{
-          "damage":10
-        }
+        "damage":10
       },
       "Electric Prod": {
-        "weapon":{
-          "damage":10,
-          "nobleed": true
-        }
+        "damage":10,
+        "nobleed": true
       },
       "Incinerator":{
-        "weapon":{
-          "damage":20,
-          "nobleed": true
-        }
+        "damage":20,
+        "nobleed": true
       },
       "Cat Box": {
-        "weapon":{
-          "damage":10
-        },
-        "actions":[
-          "capture"
-        ]
+        "damage":10,
+        "captive":null
       },
       "Harpoon Gun": {
-        "weapon":{
-          "damage":50,
-          "splash":true
-        }
+        "damage":50,
+        "splash":true
       },
       "Motion Tracker": {
         "track": 1
       },
       "Net":{
-        "actions":[
-          "capture"
-        ]
+        "captive":null
       }
     },
     "special": {
