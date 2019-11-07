@@ -40,18 +40,22 @@
 
 /*
 TODO:
-  combat
+  miss chance
+  wound logs
   show pending action
-  generic item code
-  disable clicking on dead pc tab
+  acid blood
+  all interobject refs through IDs, no references
+  replace void room with item/actor/etc. "rooms"
+    generic item action code
   ai system
   widgets and service
-  fix room names / IDs
   split htm and js
   get rid of event log space
   names, like characters -> pcs
   deep copy def obj (?)
   scopable event log
+  add 'config' object, mostly for debugging
+    disable clicking on dead pc tab
   upside down event log?
   generate js signature docs
   map display
@@ -71,7 +75,8 @@ const Actions = {
   ATTACK:"attack",
   GET:"get",
   DROP:"drop",
-  USE:"use"
+  USE:"use",
+  CAPTURE:"capture" // TODO generic target action
 };
 const Events = {
   LOG:"log"
@@ -97,6 +102,7 @@ const MOVE_ACTIONS = "move-actions";
 const GET_ACTIONS = "get-actions";
 const COMBAT_ACTIONS = "combat-actions";
 const OTHER_ACTIONS = "other-actions";
+const VOID = "void"; // Room for when need "nowhere"
 
 
     function loadJSON(callback) {
@@ -144,6 +150,7 @@ const OTHER_ACTIONS = "other-actions";
 
     function init(gameData) {
       let roomDoorMap = {};
+      gameData.rooms.push({id: VOID}); // VOID room, dor taking things out of level
       for (let key in Category ) {
         let category = Category[key];
         let defs = gameData.defs[category];
@@ -213,7 +220,7 @@ const OTHER_ACTIONS = "other-actions";
               return b.time - a.time;
           });
         } else {
-          // todo
+          // TODO
           throw new Error("Scheduler persistence not implemented");
         }
 
@@ -229,21 +236,24 @@ const OTHER_ACTIONS = "other-actions";
         while (!scheduler.isEmpty() && scheduler.peek().time <= gameData.time) {
             eventBus.push(scheduler.dequeue());
         }
+        // check validity *before* resolving any Actions
+        eventBus = eventBus.filter(event=>event.isValid(gameData));
         for (let event of eventBus) {
             Action.handleAction(event, gameData);
         }
 
        // Queue new actions
         for (let actor of gameData.actors) {
-            if (!gameData.isBusy(actor.id)) {
+          // not preoccupied doing something, being dead or in a box
+            if (!gameData.isBusy(actor.id) && actor.isAlive()) {
                 var choices = Action.getChoices(actor, gameData);
                 // AI actions
                 if (actor.ai != AI_PLAYER) {
 
                     // TODO Specific AIs
-
-                    Action.takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
-
+                    if (choices.length > 0) {
+                      Action.takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
+                    }
                 } else {
                      // TODO handle input
                 }
@@ -429,7 +439,7 @@ const OTHER_ACTIONS = "other-actions";
         return this.actors.filter(actor => actor.ai === AI_PLAYER);
       }
 
-      pcSelected() {
+      pcSelected() { // TODO selectedId
         return this.selected && this.getByCategoryId(Category.ACTORS, this.selected).isAlive();
       }
 
@@ -440,14 +450,19 @@ const OTHER_ACTIONS = "other-actions";
     }
 
     class Action {
-        constructor(type, target, actor) {
+        constructor(type, target, actor, source) {
           if (!type || !target || !actor)
          {
-           throw new Error("No null params allowed for Action");
+           throw new Error("type, target, actor must be non null for Action");
          }
             this.type = type;
             this.target = target;
             this.actor = actor;
+            if (source) {
+              this.source = source;
+            } else {
+              this.source = actor;
+            }
         }
 
         static byType(actions) {
@@ -468,7 +483,7 @@ const OTHER_ACTIONS = "other-actions";
             let out = [];
             let room = gameData.getByCategoryId(Category.ROOMS, actor.roomName);
             let addIfSupported = (action)=>{
-              if (action.actor.actions.includes(action.type)
+              if (action.actor.getActions().includes(action.type)
                   && action.isValid(gameData)) {
                 out.push(action);
               }
@@ -492,8 +507,8 @@ const OTHER_ACTIONS = "other-actions";
             for (let otherActor of gameData.actors ) {
               if (otherActor.roomName === actor.roomName
                   && otherActor.id != actor.id) {
-                    // TODO Cat-catching
                   addIfSupported(new Action(Actions.ATTACK, otherActor, actor));
+                  addIfSupported(new Action(Actions.CAPTURE, otherActor, actor));
               }
             }
 
@@ -511,7 +526,6 @@ const OTHER_ACTIONS = "other-actions";
 
         static handleAction(event, gameData) {
           // TODO split initiating action into multiple effects
-            if (!event.isValid(gameData)) {return;}
             let actor = event.actor;
             let actorRoom = gameData
                 .getByCategoryId(Category.ROOMS, event.actor.roomName);
@@ -540,6 +554,12 @@ const OTHER_ACTIONS = "other-actions";
               actorRoom.items.push(item);
             } else if (event.type === Actions.USE) {
               // TODO ...use it
+            } else if (event.type === Actions.CAPTURE) {
+              // Validity check should ensure this item exists and is approriate
+              // TODO But test it, or re-architect
+              actor.items[0].captive = target;
+              target.roomName = VOID;
+              gameData.actors.splice(gameData.actors.indexOf(target));
             }
             var log = document.getElementById("events");
             log.innerHTML= log.innerHTML + (event.getEventText(gameData) + "<br/>");
@@ -562,6 +582,9 @@ const OTHER_ACTIONS = "other-actions";
         isValid(gameData) {
           if (!gameData) {throw new Error("NO MORE NULL GAMEDATA");}
           let actor = this.actor;
+          if (!actor.getActions().includes(this.type)) {
+            return false;
+          }
           let target = this.target;
           let actorRoom = gameData
               .getByCategoryId(Category.ROOMS, actor.roomName);
@@ -572,7 +595,10 @@ const OTHER_ACTIONS = "other-actions";
               return target.rooms.includes(actor.roomName);
             case Actions.ATTACK: // actor object
               return actor.roomName === target.roomName
-                  && actor.getWeapon();
+                  && actor.getWeapon() && target.attackable;
+            case Actions.CAPTURE: // actor object
+              return actor.roomName === target.roomName
+                  && target.capturable;
             case Actions.GET: // room item
               return actorRoom.items.includes(target)
                 && actor.items.length < actor.inventory;
@@ -603,6 +629,8 @@ const OTHER_ACTIONS = "other-actions";
               return "Drop " + this.target.type;
             case Actions.USE:
               return "Use " + this.target.type;
+            case Actions.CAPTURE:
+              return "Catch " + this.target.id;
             default:
               throw new Error("Unsupported action text: " + this.type);
           }
@@ -624,6 +652,8 @@ const OTHER_ACTIONS = "other-actions";
                 return this.actor.id + " dropped " + this.target.type + ".";
               case Actions.USE:
                 return this.actor.id + " used " + this.target.type + ".";
+              case Actions.CAPTURE:
+                return this.actor.id + " captured " + this.target.type + ".";
               case Events.LOG:
                 // TODO debug flag
                 return "Log: " + target;
@@ -680,18 +710,11 @@ const OTHER_ACTIONS = "other-actions";
 
         // TODO default or require: inventory, attack
         // TODO random location option
-        let required = ["roomName", "health"];
+        let required = ["roomName", "health", "actions"];
         for (let req of required) {
-          if (!this.hasOwnProperty("roomName")) {
+          if (!this.hasOwnProperty(req)) {
               throw new Error("No value for " + req + ": "
                   + JSON.stringify(actor));
-          }
-        }
-        // Assign default allowed actions (all)
-        if (!this.actions) {
-          this.actions = [];
-          for (let type in Actions) {
-            this.actions.push(Actions[type]);
           }
         }
 
@@ -710,6 +733,17 @@ const OTHER_ACTIONS = "other-actions";
           return this.items[0].weapon;
         }
         return this.weapon;
+      }
+
+      getActions(){
+        let tempOut = {};
+
+        tempOut = tempOut.concat(this.actions);
+        // TODO support actions in second place
+        if (this.items && this.items[0] && this.items[0].actions) {
+          tempOut = tempOut.concat(this.items[0].actions);
+        }
+        return tempOut;
       }
 
       isAlive() {

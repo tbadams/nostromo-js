@@ -167,12 +167,6 @@
     },
     {
       "rooms": [
-        "corridor2",
-        "cargopod2"
-      ]
-    },
-    {
-      "rooms": [
         "cargopod2",
         "corridor7"
       ]
@@ -463,11 +457,7 @@
     {
       "type": "cat",
       "id":"Cat",
-      "ai": "wander",
-      "actions":[
-        "move"
-      ],
-
+      "ai": "player",
       "roomName": "corridor2"
     }
   ],
@@ -477,17 +467,31 @@
       "default":{
         "inventory":2,
         "health":40,
-        "attackable":true
+        "attackable":true,
+        "capturable":false,
+        "actions":[
+          "move",
+          "unlock",
+          "attack",
+          "get",
+          "drop",
+          "use"]
       },
       "human":{},
       "cat":{
         "inventory": 0,
-        "attackable":false
+        "attackable":false,
+        "capturable":true,
+        "actions":[
+          "move"
+        ]
       },
       "creature":{
         "ai": "wumpus",
         "actions":[
-          "move", "attack", "unlock"
+          "move",
+          "attack",
+          "unlock"
         ],
         "weapon":{
           "damage":20
