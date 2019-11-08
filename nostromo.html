@@ -132,7 +132,8 @@ const VOID = "void"; // Room for when need "nowhere"
               if (pos) {
                 let min = Math.max(0, pos - grabRadius);
                 let max = Math.min(response.length - 1, pos + grabRadius);
-                let snippet = response.substring(min, max);
+                let snippet = response.substring(min, pos)
+                    + ">HERE<" + response.substring(pos, max);
                 alert( 'Error loading game data JSON: ' + e + '\n\n' + snippet);
               }
           } else {
@@ -688,6 +689,7 @@ const VOID = "void"; // Room for when need "nowhere"
               return new Actor(json, def, id);
             case Category.DOORS:
               return new Door(json, def, id);
+            case Category.SPECIAL:
             case Category.ITEMS:
               return new Item(json, def, id);
             case Category.ROOMS:

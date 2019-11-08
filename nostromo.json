@@ -489,7 +489,14 @@
         {"type":"Electric Prod"}
       ]
     }
-
+  ],
+  "special": [
+    {
+      "id":"airlock1-widget",
+      "roomName":"airlock1",
+      "toggledOn":false,
+      "onToggle":"airlock"
+    }
   ],
   "actors": [
     {
@@ -541,7 +548,8 @@
         "capturable":true,
         "actions":[
           "move"
-        ]
+        ],
+        "speed":20
       },
       "creature":{
         "ai": "wumpus",
@@ -560,6 +568,9 @@
       }
     },
     "items": {
+      "default":{
+          "carryable":true
+      },
       "Laser Pistol": {
         "damage": 30
       },
@@ -594,8 +605,15 @@
       }
     },
     "special": {
+      "default":{
+        "carryable":false
+      },
       "self-destruct": {},
-      "hypersleep": {}
+      "hypersleep": {},
+      "toggle":{
+        "floorAction":null
+      },
+      "airlock":{}
     },
     "doors": {
       "default": {
