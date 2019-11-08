@@ -344,7 +344,65 @@
         "life support vent"
       ],
       "type": "grate"
+    },
+    {
+      "rooms": [
+        "bridge",
+        "bridge vent"
+      ],
+      "type":"grate"
+    },
+    {
+      "rooms": [
+        "corridor1",
+        "corridor1 vent"
+      ],
+      "type":"grate"
+    },
+    {
+      "rooms": [
+        "bridge vent",
+        "corridor1 vent"
+      ],
+      "type":"vent"
+    },
+    {
+      "rooms": [
+        "lab",
+        "lab vent"
+      ],"type":"grate"
+    },
+    {
+      "rooms": [
+        "lab vent",
+        "corridor1 vent"
+      ],"type":"vent"
+    },
+    {
+      "rooms": [
+        "infirmary",
+        "infirmary vent"
+      ],"type":"grate"
+    },
+    {
+      "rooms": [
+        "corridor1 vent",
+        "infirmary vent"
+      ],"type":"vent"
+    },
+    {
+      "rooms": [
+        "corridor2",
+        "corridor2 vent"
+      ],"type":"grate"
+    },
+    {
+      "rooms": [
+        "corridor1 vent",
+        "corridor2 vent"
+      ],"type":"vent"
     }
+
   ],
   "rooms": [
     {
