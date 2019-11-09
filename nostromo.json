@@ -608,7 +608,9 @@
       "default":{
         "carryable":false
       },
-      "self-destruct": {},
+      "self-destruct": {
+          "floorAction":null
+      },
       "hypersleep": {},
       "toggle":{
         "floorAction":null

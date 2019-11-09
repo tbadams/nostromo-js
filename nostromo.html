@@ -151,6 +151,8 @@ const VOID = "void"; // Room for when need "nowhere"
 
     function init(gameData) {
       let roomDoorMap = {};
+      let lookupAll = {}
+      gameData.transient.byId.all = lookupAll;
       gameData.rooms.push({id: VOID}); // VOID room, dor taking things out of level
       for (let key in Category ) {
         let category = Category[key];
@@ -162,22 +164,23 @@ const VOID = "void"; // Room for when need "nowhere"
 
         for (let i in objects) { // Instantiation pass
           objects[i] = TypedClass.create(category, objects[i], defs, i);
-          if (lookup[objects[i].id]) {
-            throw Error("Dupe id " + objects[i].id);
+          let object = objects[i];
+          if (lookup[object.id] || lookupAll[object.id]) {
+            throw Error("Dupe id " + object.id);
           }
-          lookup[objects[i].id] = objects[i];
+          lookup[object.id] = object;
           // category specifc
           if (category === Category.DOORS) {
             // Get doors for each room
-            let door = objects[i];
+            let door = object;
             for (let roomName of door.rooms) {
                 if (!roomDoorMap.hasOwnProperty(roomName)) {
                     roomDoorMap[roomName] = {
                       id:roomName,
-                        doors:[]
+                        doorIds:[]
                     };
                 }
-                roomDoorMap[roomName].doors.push(door);
+                roomDoorMap[roomName].doorIds.push(door.id);
             }
           } else if (category === Category.ROOMS) {
             let room = objects[i];
@@ -202,7 +205,7 @@ const VOID = "void"; // Room for when need "nowhere"
           gameData.transient.byId.rooms[newRoom.id] = newRoom;
         }
         // Update door list
-        gameData.transient.byId.rooms[doorList.id].doors = doorList.doors;
+        gameData.transient.byId.rooms[doorList.id].doorIds = doorList.doorIds;
       }
 
         // TODO check graph connected
@@ -491,7 +494,8 @@ const VOID = "void"; // Room for when need "nowhere"
                 addIfSupported(new Action(Actions.GET, item, actor));
               }
             }
-            for (let door of room.doors) {
+            for (let doorId of room.doorIds) {
+              let door = gameData.getByCategoryId(Category.DOORS, doorId)
                 if (!door.locked) {
                   addIfSupported(new Action(Actions.MOVE, door.other(room.id), actor));
                 } else {
@@ -586,7 +590,7 @@ const VOID = "void"; // Room for when need "nowhere"
               .getByCategoryId(Category.ROOMS, actor.roomName);
           switch(this.type) {
             case Actions.MOVE: // target=roomName
-              return actorRoom.getLinks().includes(target);
+              return actorRoom.getLinks(gameData).includes(target);
             case Actions.UNLOCK: // target=door object
               return target.rooms.includes(actor.roomName);
             case Actions.ATTACK: // actor object
@@ -748,14 +752,15 @@ const VOID = "void"; // Room for when need "nowhere"
         super(json, defs, id)
         this.category = Category.ROOMS;
         // declare default variables
-        if (!this.doors) {this.doors = [];}
+        if (!this.doorIds) {this.doorIds = [];}
         if (!this.special) {this.special = [];}
         if (!this.items) {this.items=[];}
       }
 
-      getLinks(){
+      getLinks(gameData){
           var out = [];
-          for (let door of this.doors) {
+          for (let doorId of this.doorIds) {
+            let door = gameData.getByCategoryId(Category.DOORS, doorId);
               out.push(door.other(this.id));
           }
           return out;
