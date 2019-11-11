@@ -408,7 +408,7 @@
     {
       "id":"bridge",
       "special": [
-        "self-destruct"
+        {"type":"self-destruct"}
       ],
       "items":[
         {"type":"Motion Tracker"},
@@ -419,7 +419,7 @@
     {
       "id":"cryo lab",
       "special": [
-        "hypersleep"
+        {"type":"hypersleep"}
       ]
     },
     {
@@ -433,7 +433,7 @@
     {
       "id":"stores3",
       "items":[
-        "Spanner"
+        {"type":"Spanner"}
       ]
     },
     {
@@ -630,6 +630,5 @@
         "floorChange": true
       }
     }
-  },
-  "time": 0
+  }
 }

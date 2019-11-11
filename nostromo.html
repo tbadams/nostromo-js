@@ -86,7 +86,6 @@ const Category = {
   ITEMS:"items",
   ACTORS:"actors",
   ROOMS:"rooms",
-  AI:"ai",
   SPECIAL:"special"
 };
 const Health = {
@@ -116,7 +115,6 @@ const VOID = "void"; // Room for when need "nowhere"
         };
         xobj.send(null);
     }
-
 
     loadJSON(function(response) {
         let errorPattern = /(\d+).*/g;
@@ -150,10 +148,66 @@ const VOID = "void"; // Room for when need "nowhere"
     });
 
     function init(gameData) {
-      let roomDoorMap = {};
+      if (!gameData.state) {
+        // Extra initialization for first ever run
+        gameData.state = {
+          time:0,
+          paused:false
+        }
+        // Generate implied rooms from doors
+        // Get the list of door ids for every room
+        let roomDoorMap = {};
+        gameData.rooms.push({id: VOID, doorIds:[]}); // VOID room, for taking things out of level
+        for (let i in gameData.doors) {
+          gameData.doors[i] = new Door(gameData.doors[i], gameData.defs.doors, i);
+          let door = gameData.doors[i];
+          for (let roomName of door.rooms) {
+              if (!roomDoorMap.hasOwnProperty(roomName)) {
+                  roomDoorMap[roomName] = {
+                    id:roomName,
+                      doorIds:[]
+                  };
+              }
+              roomDoorMap[roomName].doorIds.push(door.id);
+          }
+        }
+        // Assign door id lists to rooms that already exist
+        for (let room of gameData.rooms) {
+          if (roomDoorMap[room.id] && roomDoorMap[room.id].doorIds) {
+            room.doorIds = roomDoorMap[room.id].doorIds;
+            delete roomDoorMap[room.id];
+          }
+        }
+        // Create remaining ("implied") ROOMS
+        for (let roomName in roomDoorMap) {
+          gameData.rooms.push(roomDoorMap[roomName]);
+        }
+
+        // Grab objects nested in others, extract to top level
+        for (let category of asList(Category)) {
+          let objects = gameData[category];
+          for (let object of objects) {
+            for (let category2 of asList(Category)){
+              if (!gameData[category2]) {
+                gameData[category2] = [];
+              }
+              if (object[category2] && category2 != Category.ROOMS) { // nothing can contain rooms... yet
+                if (!object.id) {throw Error("no id");}
+                for ( let contained of object[category2]) {
+                  contained.roomName = object.id; // TODO Generify
+                  gameData[category2].push(contained);
+                }
+                delete object[category2];
+              }
+            }
+          }
+        }
+      }
+
+      // Actual game initialization
       let lookupAll = {}
       gameData.transient.byId.all = lookupAll;
-      gameData.rooms.push({id: VOID}); // VOID room, dor taking things out of level
+
       for (let key in Category ) {
         let category = Category[key];
         let defs = gameData.defs[category];
@@ -169,52 +223,28 @@ const VOID = "void"; // Room for when need "nowhere"
             throw Error("Dupe id " + object.id);
           }
           lookup[object.id] = object;
-          // category specifc
-          if (category === Category.DOORS) {
-            // Get doors for each room
-            let door = object;
-            for (let roomName of door.rooms) {
-                if (!roomDoorMap.hasOwnProperty(roomName)) {
-                    roomDoorMap[roomName] = {
-                      id:roomName,
-                        doorIds:[]
-                    };
-                }
-                roomDoorMap[roomName].doorIds.push(door.id);
-            }
-          } else if (category === Category.ROOMS) {
-            let room = objects[i];
-            let roomItems = room.items;
-            for (let j in roomItems) {
-              roomItems[j] = TypedClass.create(Category.ITEMS, roomItems[j], itemDefs, j);
-            }
-          } else if (category === Category.ACTORS) {
-
-          }
+          lookupAll[object.id] = object;
         }
-      }
-
-      // 2nd passes
-      for (let key in roomDoorMap) {
-        let doorList = roomDoorMap[key];
-        let room = gameData.transient.byId.rooms[key];
-        if (!room) {
-          // Room mentioned in doors but not defined, create it
-          let newRoom = new Room(doorList, gameData.defs[Category.ROOMS]);
-          gameData.rooms.push(newRoom);
-          gameData.transient.byId.rooms[newRoom.id] = newRoom;
-        }
-        // Update door list
-        gameData.transient.byId.rooms[doorList.id].doorIds = doorList.doorIds;
       }
 
         // TODO check graph connected
 
-        var actors = gameData.actors;
-        for (let i in actors) {
-          let actor = actors[i];
-          if (!gameData.getByCategoryId(Category.ROOMS, actor.roomName)){
-             throw new Error("actor location <" + actor.roomName + "> does not exist");
+        // validate each contained has valid container, set up mem references
+        let all = gameData.transient.byId.all;
+        for (let i in all) {
+          let thing = all[i]
+          if (thing.roomName) { // TODO generify
+            if (!gameData.getByCategoryId(Category.ROOMS, thing.roomName)){
+               throw new Error("thing location <" + thing.roomName + "> does not exist");
+             } else {
+                // inform parent
+                let parent = all[thing.roomName];
+                let cat = thing.category;
+                if (!parent.transient[cat]) {
+                  parent.transient[cat] = [];
+                }
+                parent.transient[cat].push(thing);
+             }
            }
         }
 
@@ -231,13 +261,13 @@ const VOID = "void"; // Room for when need "nowhere"
     }
 
     function gameLoop(gameData) {
-        document.getElementById("time").innerHTML = ("Time:" + gameData.time);
+        document.getElementById("time").innerHTML = ("Time:" + gameData.state.time);
         var eventBus = []
         var scheduler = gameData.scheduler;
 
         // TODO copy gamedata
         // Handle scheduled events
-        while (!scheduler.isEmpty() && scheduler.peek().time <= gameData.time) {
+        while (!scheduler.isEmpty() && scheduler.peek().time <= gameData.state.time) {
             eventBus.push(scheduler.dequeue());
         }
         // check validity *before* resolving any Actions
@@ -272,7 +302,7 @@ const VOID = "void"; // Room for when need "nowhere"
           scheduler.add(action);
         }
         // TODO cleanup, maintenance (?)
-       gameData.time = gameData.time + 1;
+       gameData.state.time = gameData.state.time + 1;
 
        draw(gameData);
     }
@@ -334,7 +364,14 @@ const VOID = "void"; // Room for when need "nowhere"
       } else {
         gameData.selected = null;
       }
+    }
 
+    function asList(enumeration){
+      let out = [];
+      for (let k in enumeration) {
+        out.push(enumeration[k]);
+      }
+      return out;
     }
 
     function draw(gameData) {
@@ -488,8 +525,8 @@ const VOID = "void"; // Room for when need "nowhere"
                 out.push(action);
               }
             }
-            if(room.items && actor.items.length < actor.inventory) {
-              let items = room.items;
+            if(room.getItems() && actor.getItems().length < actor.inventory) {
+              let items = room.getItems();
               for (let item of items) {
                 addIfSupported(new Action(Actions.GET, item, actor));
               }
@@ -514,8 +551,8 @@ const VOID = "void"; // Room for when need "nowhere"
             }
 
             // Items
-            if (actor.items) {
-              let items = actor.items;
+            if (actor.getItems()) {
+              let items = actor.getItems();
               for (let item of items) {
                 // addIfSupported(new Action(Actions.USE, item, actor));
                 addIfSupported(new Action(Actions.DROP, item, actor));
@@ -533,6 +570,7 @@ const VOID = "void"; // Room for when need "nowhere"
             let target = event.target;
             if (event.type === Actions.MOVE) {
                 event.actor.roomName = event.target;
+                // TODO fucking move fuck tshit ass
             } else if (event.type === Actions.UNLOCK) {
                 event.target.locked = false;
             } else if (event.type === Actions.ATTACK) {
@@ -545,14 +583,15 @@ const VOID = "void"; // Room for when need "nowhere"
                 }
             } else if (event.type === Actions.GET) {
               let item = event.target;
-              actorRoom.items = actorRoom.items.filter((thing)=>thing != item);
-                event.actor.items.push(event.target);
+              item.roomName = actor.id; // TODO do... something else
+              actorRoom.transient.items = actorRoom.getItems().filter((thing)=>thing != item);
+                event.actor.transient.items.push(event.target);
             } else if (event.type === Actions.DROP) {
               // Move item to room
               let item = event.target;
-              // TODO this
-              event.actor.items = event.actor.items.filter((thing)=>thing != item);
-              actorRoom.items.push(item);
+              item.roomName = actorRoom.id;
+              event.actor.transient.items = event.actor.getItems().filter((thing)=>thing != item);
+              actorRoom.transient.items.push(item);
             } else if (event.type === Actions.USE) {
               // TODO ...use it
             } else if (event.type === Actions.CAPTURE) {
@@ -567,7 +606,7 @@ const VOID = "void"; // Room for when need "nowhere"
         static takeAction(actor, action, gameData) { // todo rename queue
             if (action.isValid(gameData)) {
               var length = Action.duration(action, gameData);
-              action.time = gameData.time + length;
+              action.time = gameData.state.time + length;
               gameData.scheduler.enqueue(action);
             } else {
               gameData.scheduler.enqueue(new Action(Events.LOG, "invalid action taken", 0));
@@ -600,12 +639,12 @@ const VOID = "void"; // Room for when need "nowhere"
               return actor.roomName === target.roomName
                   && target.capturable && !actionMap[this.type].captive;
             case Actions.GET: // room item
-              return actorRoom.items.includes(target)
-                && actor.items.length < actor.inventory;
+              return actorRoom.getItems().includes(target)
+                && actor.getItems().length < actor.inventory;
             case Actions.DROP: // actor item
-              return actor.items.includes(target);
+              return actor.getItems().includes(target);
             case Actions.USE:
-              return (actorRoom.items.includes(target) || actor.items.includes(target))
+              return (actorRoom.getItems().includes(target) || actor.getItems().includes(target))
                   && target.isUsable();
             case Events.LOG:
               return true;
@@ -680,11 +719,23 @@ const VOID = "void"; // Room for when need "nowhere"
                 }
             }
             Object.assign(this, json); // Specific instance
+            this.transient = {};
+            this.transient.items = [];
 
             // Validate common properties
             if (!this.id) {
               throw Error("Typed object has no id");
             }
+        }
+
+        getContained(category) {
+          return this.transient[category];
+        }
+
+        getItems() {
+          if (!this.transient.items) {return [];}
+
+          return this.getContained(Category.ITEMS);
         }
 
         static create(category, json, def, id) {
@@ -694,6 +745,7 @@ const VOID = "void"; // Room for when need "nowhere"
             case Category.DOORS:
               return new Door(json, def, id);
             case Category.SPECIAL:
+              return new Special(json, def, id);
             case Category.ITEMS:
               return new Item(json, def, id);
             case Category.ROOMS:
@@ -722,10 +774,6 @@ const VOID = "void"; // Room for when need "nowhere"
         if (!this.hp) {
           this.hp = this.health;
         }
-
-        if (!this.items) {
-          this.items = [];
-        }
       }
 
       getActionMap(){ // make map of actions to source
@@ -734,9 +782,9 @@ const VOID = "void"; // Room for when need "nowhere"
         for (let action of this.actions) {
           tempOut[action] = this;
         }
-        if (this.items[0]) {
-          for (let action of this.items[0].actions) {
-            tempOut[action] = this.items[0]; // TODO collision
+        if (this.getItems()[0]) {
+          for (let action of this.getItems()[0].actions) {
+            tempOut[action] = this.getItems()[0]; // TODO collision
           }
         }
         return tempOut;
@@ -754,7 +802,6 @@ const VOID = "void"; // Room for when need "nowhere"
         // declare default variables
         if (!this.doorIds) {this.doorIds = [];}
         if (!this.special) {this.special = [];}
-        if (!this.items) {this.items=[];}
       }
 
       getLinks(gameData){
@@ -809,6 +856,12 @@ const VOID = "void"; // Room for when need "nowhere"
       isUsable() {
         // weapons dpon't count
         return this.actions.length > 0;
+      }
+    }
+
+    class Special extends TypedClass {
+      constructor (json, typeDefs, id) {
+        super(json, typeDefs, "special" + id);
       }
     }
 
