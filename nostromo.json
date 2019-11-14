@@ -501,6 +501,10 @@
       "id":"oxygen",
       "type":"oxygen",
       "count":8000,
+      "incrementVal":{
+        "category":"actors",
+        "breathe":true
+      },
       "ai":"count",
       "actions":[
         "count"

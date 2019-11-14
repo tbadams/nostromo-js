@@ -40,7 +40,7 @@
 
 /*
 TODO:
-SEPERATE GODAMN FILES
+SEPERATE GODDAMN FILES
   miss chance
   wound logs
   show pending action
@@ -77,10 +77,10 @@ const Actions = {
   GET:"get",
   DROP:"drop",
   USE:"use",
-  CAPTURE:"capture" // TODO generic target action
+  CAPTURE:"capture",  // TODO generic target action
+  COUNT:"count"
 };
 const Events = {
-  COUNT:"count",
   LOG:"log"
 };
 const Category = {
@@ -530,21 +530,24 @@ const CATEGORY_ALL = "all";
                 out.push(action);
               }
             }
-            if(room.getItems() && actor.getItems().length < actor.inventory) {
-              let items = room.getItems();
-              for (let item of items) {
-                addIfSupported(new Action(Actions.GET, item, actor));
+            if (room) {
+              if(room.getItems() && actor.getItems().length < actor.inventory) {
+                let items = room.getItems();
+                for (let item of items) {
+                  addIfSupported(new Action(Actions.GET, item, actor));
+                }
+              }
+              for (let doorId of room.doorIds) {
+                let door = gameData.getByCategoryId(Category.DOORS, doorId)
+                  if (!door.locked) {
+                    addIfSupported(new Action(Actions.MOVE, door.other(room.id), actor));
+                  } else {
+                    // TODO If actor supported
+                    addIfSupported(new Action(Actions.UNLOCK, door, actor));
+                  }
               }
             }
-            for (let doorId of room.doorIds) {
-              let door = gameData.getByCategoryId(Category.DOORS, doorId)
-                if (!door.locked) {
-                  addIfSupported(new Action(Actions.MOVE, door.other(room.id), actor));
-                } else {
-                  // TODO If actor supported
-                  addIfSupported(new Action(Actions.UNLOCK, door, actor));
-                }
-            }
+
             // Combat
             let actorsHere = [];
             for (let otherActor of gameData.actors ) {
@@ -565,7 +568,7 @@ const CATEGORY_ALL = "all";
             }
 
             // For logic actors
-            addIfSupported(new Action(Events.COUNT, null, actor));
+            addIfSupported(new Action(Actions.COUNT, null, actor));
 
             return out;
         }
@@ -611,8 +614,8 @@ const CATEGORY_ALL = "all";
               event.source.captive = target;
               target.roomName = VOID;
               gameData.actors.splice(gameData.actors.indexOf(target));
-            } else if (event.type === Events.COUNT) {
-              actor.count(gameData);
+            } else if (event.type === Actions.COUNT) {
+              actor.increment(gameData);
             } else {
               throw Error("undefined action " + event)
             }
@@ -674,6 +677,7 @@ const CATEGORY_ALL = "all";
             case Actions.USE:
               return (actorRoom.getItems().includes(target) || actor.getItems().includes(target))
                   && target.isUsable();
+            case Actions.COUNT:
             case Events.LOG:
               return true;
             default:
@@ -705,6 +709,7 @@ const CATEGORY_ALL = "all";
 
         getEventText(gameData) {
             let type = this.type;
+            // TODO record payload, e.g. damage, increment, etc.
             switch(type) {
               case Actions.MOVE:
                 return this.actor.id + " moved to " + this.target + ".";
@@ -721,6 +726,8 @@ const CATEGORY_ALL = "all";
                 return this.actor.id + " used " + this.target.type + ".";
               case Actions.CAPTURE:
                 return this.actor.id + " captured " + this.target.type + ".";
+              case Actions.COUNT:
+                return this.actor.id + " new count is " +this.actor.count + ".";
               case Events.LOG:
                 // TODO debug flag
                 return "Log: " + target;
@@ -770,6 +777,23 @@ const CATEGORY_ALL = "all";
           return this.getContained(Category.ITEMS);
         }
 
+        getActionMap(){ // make map of actions to source
+          if (!this.actions) {
+            throw Error(id + " has no actionMap")
+          }
+          let tempOut = {};
+
+          for (let action of this.actions) {
+            tempOut[action] = this;
+          }
+          if (this.getItems()[0]) {
+            for (let action of this.getItems()[0].actions) {
+              tempOut[action] = this.getItems()[0]; // TODO collision
+            }
+          }
+          return tempOut;
+        }
+
         static create(category, json, def, id) {
           switch(category) {
             case Category.ACTORS:
@@ -795,7 +819,7 @@ const CATEGORY_ALL = "all";
 
         // TODO default or require: inventory, attack
         // TODO random location option
-        let required = ["roomName", "health", "actions"];
+        let required = ["roomName", "actions"];
         for (let req of required) {
           if (!this.hasOwnProperty(req)) {
               throw new Error("No value for " + req + ": "
@@ -806,20 +830,6 @@ const CATEGORY_ALL = "all";
         if (!this.hp) {
           this.hp = this.health;
         }
-      }
-
-      getActionMap(){ // make map of actions to source
-        let tempOut = {};
-
-        for (let action of this.actions) {
-          tempOut[action] = this;
-        }
-        if (this.getItems()[0]) {
-          for (let action of this.getItems()[0].actions) {
-            tempOut[action] = this.getItems()[0]; // TODO collision
-          }
-        }
-        return tempOut;
       }
 
       takesActions() {
@@ -898,12 +908,40 @@ const CATEGORY_ALL = "all";
     class Special extends TypedClass {
       constructor (json, typeDefs, id) {
         super(json, typeDefs, "special" + id);
+
+        if (this.count) {
+          this.incrementVal = new Selector(this.incrementVal);
+        }
       }
 
-      count(gameData) {
-
+      increment(gameData) {
+        // TODO plus or minus
+        let vals = this.incrementVal.getVals(gameData);
+        let inc = vals.length;
+        this.count = this.count - inc;
       }
 
+    }
+
+    class Selector {
+      constructor (json) {
+        if (!json) {
+          throw Error ("No value to wrap");
+        }
+        this.json = json;
+      }
+
+      // Return wrapped int value, or use selector object to find referenced value(s)
+      getVals(gameData) {
+        return gameData.getAll().filter(obj=>{
+          for (let field in this.json) {
+            if (!obj[field] || !(obj[field] === this.json[field])) {
+              return false;
+            }
+          }
+          return true;
+        });
+      }
     }
 
 
