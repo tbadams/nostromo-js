@@ -40,6 +40,7 @@
 
 /*
 TODO:
+SEPERATE GODAMN FILES
   miss chance
   wound logs
   show pending action
@@ -79,6 +80,7 @@ const Actions = {
   CAPTURE:"capture" // TODO generic target action
 };
 const Events = {
+  COUNT:"count",
   LOG:"log"
 };
 const Category = {
@@ -102,6 +104,7 @@ const GET_ACTIONS = "get-actions";
 const COMBAT_ACTIONS = "combat-actions";
 const OTHER_ACTIONS = "other-actions";
 const VOID = "void"; // Room for when need "nowhere"
+const CATEGORY_ALL = "all";
 
 
     function loadJSON(callback) {
@@ -257,7 +260,6 @@ const VOID = "void"; // Room for when need "nowhere"
           // TODO
           throw new Error("Scheduler persistence not implemented");
         }
-
     }
 
     function gameLoop(gameData) {
@@ -277,13 +279,12 @@ const VOID = "void"; // Room for when need "nowhere"
         }
 
        // Queue new actions
-        for (let actor of gameData.actors) {
-          // not preoccupied doing something, being dead or in a box
-            if (!gameData.isBusy(actor.id) && actor.isAlive()) {
+        for (let actor of gameData.getAll()) {
+          // not preoccupied doing something, like being dead or in a box
+            if (actor.takesActions() && !gameData.isBusy(actor.id)) {
                 var choices = Action.getChoices(actor, gameData);
                 // AI actions
                 if (actor.ai != AI_PLAYER) {
-
                     // TODO Specific AIs
                     if (choices.length > 0) {
                       Action.takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
@@ -403,7 +404,7 @@ const VOID = "void"; // Room for when need "nowhere"
         var choices = Action.getChoices(pc, gameData);
         // Move actions
 
-        if (!gameData.isBusy(pc.id)) {
+        if (pc.isAlive() && !gameData.isBusy(pc.id)) {
           for(let action of choices) {
             var newButton = document.createElement("BUTTON");
             newButton.innerHTML = action.getMenuText();
@@ -468,6 +469,10 @@ const VOID = "void"; // Room for when need "nowhere"
         throw Error("No defs type '" + defType + "'.")
       }
 
+      getAll() {
+        return asList(this.getCategoryMap(CATEGORY_ALL));
+      }
+
       getCategoryMap(category) {
         return this.transient.byId[category];
       }
@@ -491,11 +496,11 @@ const VOID = "void"; // Room for when need "nowhere"
     }
 
     class Action {
-        constructor(type, target, actor) {
-          if (!type || !target || !actor)
-         {
-           throw new Error("type, target, actor must be non null for Action");
-         }
+        constructor(type, target, actor) { // TODO swap target and actor
+          if (!type || !actor)
+           {
+             throw new Error("type, actor must be non null for Action");
+           }
             this.type = type;
             this.target = target;
             this.actor = actor;
@@ -559,6 +564,9 @@ const VOID = "void"; // Room for when need "nowhere"
               }
             }
 
+            // For logic actors
+            addIfSupported(new Action(Events.COUNT, null, actor));
+
             return out;
         }
 
@@ -603,6 +611,10 @@ const VOID = "void"; // Room for when need "nowhere"
               event.source.captive = target;
               target.roomName = VOID;
               gameData.actors.splice(gameData.actors.indexOf(target));
+            } else if (event.type === Events.COUNT) {
+              actor.count(gameData);
+            } else {
+              throw Error("undefined action " + event)
             }
             this.log(event, gameData);
             for (let effect of effects) {
@@ -739,10 +751,14 @@ const VOID = "void"; // Room for when need "nowhere"
             this.transient.items = [];
 
             // Validate common properties
-            if (!this.id) {
-              throw Error("Typed object has no id");
+            for (let req of ["id", "type", "category"]) {
+              if (!this.id) {
+                throw Error("Typed object has no " + req);
+              }
             }
         }
+
+        takesActions() {return this.ai}
 
         getContained(category) {
           return this.transient[category];
@@ -804,6 +820,10 @@ const VOID = "void"; // Room for when need "nowhere"
           }
         }
         return tempOut;
+      }
+
+      takesActions() {
+        return super.takesActions() && this.isAlive();
       }
 
       isAlive() {
@@ -879,6 +899,11 @@ const VOID = "void"; // Room for when need "nowhere"
       constructor (json, typeDefs, id) {
         super(json, typeDefs, "special" + id);
       }
+
+      count(gameData) {
+
+      }
+
     }
 
 

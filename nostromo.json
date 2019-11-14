@@ -496,6 +496,15 @@
       "roomName":"airlock1",
       "toggledOn":false,
       "onToggle":"airlock"
+    },
+    {
+      "id":"oxygen",
+      "type":"oxygen",
+      "count":8000,
+      "ai":"count",
+      "actions":[
+        "count"
+      ]
     }
   ],
   "actors": [
@@ -534,6 +543,7 @@
         "health":40,
         "attackable":true,
         "capturable":false,
+        "breathe":true,
         "actions":[
           "move",
           "unlock",
@@ -549,7 +559,8 @@
         "actions":[
           "move"
         ],
-        "speed":20
+        "speed":20,
+        "breathe":false
       },
       "creature":{
         "ai": "wumpus",
@@ -559,7 +570,8 @@
           "unlock"
         ],
         "damage":20,
-        "inventory": 0
+        "inventory": 0,
+        "breathe":false
       }
     },
     "rooms":{
@@ -615,7 +627,8 @@
       "toggle":{
         "floorAction":null
       },
-      "airlock":{}
+      "airlock":{},
+      "oxygen":{}
     },
     "doors": {
       "default": {
