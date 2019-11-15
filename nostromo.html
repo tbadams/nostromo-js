@@ -45,9 +45,10 @@
 TODO:
 actions have speed
 SEPERATE GODDAMN FILES
+move category into TypedClass
 refine selectors
   miss chance
-  wound logs
+  wound logs (and miss) as seprate event
   show pending action
   acid blood
   all interobject refs through IDs, no references
@@ -510,15 +511,24 @@ const OXYGEN = "oxygen";
     }
 
     class Action {
-        constructor(type, target, actor) { // TODO swap target and actor
-          if (!type || !actor)
-           {
-             throw new Error("type, actor must be non null for Action");
-           }
+        constructor(type, target, actor, duration, required) { // TODO swap target and actor
             this.type = type;
             this.target = target;
             this.actor = actor;
+            if (!duration) {
+              // TODO Something else
+              this.duration = 5;
+            } else {
+              this.duration = duration;
+            }
+
             this.source = actor.getActionMap()[type];
+
+            for (let requirement of ["type", "actor"]) {
+              if (!this[requirement]) {
+                throw new Error("field" + requirement + " must be non null for type Action");
+              }
+            }
         }
 
         static byType(actions) {
@@ -582,7 +592,7 @@ const OXYGEN = "oxygen";
             }
 
             // For logic actors
-            addIfSupported(new Action(Actions.COUNT, null, actor));
+            addIfSupported(new Action(Actions.COUNT, null, actor, 1));
 
             return out;
         }
@@ -644,22 +654,20 @@ const OXYGEN = "oxygen";
           if (event.msg) {
             log.innerHTML = log.innerHTML + event.msg + "<br/>";
           } else {
-              log.innerHTML= log.innerHTML + (event.getEventText(gameData) + "<br/>");
+            let eventText = event.getEventText(gameData);
+            if (eventText) {
+              log.innerHTML= log.innerHTML + (eventText + "<br/>");
+            }
           }
         }
 
         static takeAction(actor, action, gameData) { // todo rename queue
             if (action.isValid(gameData)) {
-              var length = Action.duration(action, gameData);
-              action.time = gameData.state.time + length;
+              action.time = gameData.state.time + action.duration;
               gameData.scheduler.enqueue(action);
             } else {
               gameData.scheduler.enqueue(new Action(Events.LOG, "invalid action taken", 0));
             }
-        }
-
-        static duration(action, gameData) {
-          return 3;
         }
 
         isValid(gameData) {
@@ -741,7 +749,7 @@ const OXYGEN = "oxygen";
               case Actions.CAPTURE:
                 return this.actor.id + " captured " + this.target.type + ".";
               case Actions.COUNT:
-                return this.actor.id + " new count is " +this.actor.count + ".";
+                return null;
               case Events.LOG:
                 // TODO debug flag
                 return "Log: " + target;
@@ -753,11 +761,12 @@ const OXYGEN = "oxygen";
 
     class TypedClass {
 
-        constructor(json, typeDefs, id) {
+        constructor(json, typeDefs, id, requirements) {
             // Assign characteristics hierarchically
             this.id = id; // Prefer id from data
             if (typeDefs.hasOwnProperty(DEF_DEFAULT)) {  // Type default
                 Object.assign(this, typeDefs[DEF_DEFAULT]);
+                this.type = DEF_DEFAULT;
             }
             if (json.hasOwnProperty(DEF_TYPE)) { // Specific type
                 var jsonType = json[DEF_TYPE];
@@ -772,9 +781,15 @@ const OXYGEN = "oxygen";
             this.transient.items = [];
 
             // Validate common properties
-            for (let req of ["id", "type", "category"]) {
-              if (!this.id) {
-                throw Error("Typed object has no " + req);
+            if (!requirements) {
+              requirements = [];
+            }
+            // TODO set category in constructor, validate here
+            let mergedRequirements = requirements.concat(
+              ["id", "type"])
+            for (let req of mergedRequirements) {
+              if (!this[req]) {
+                throw Error("Typed object is missing required field " + req);
               }
             }
         }
@@ -922,6 +937,7 @@ const OXYGEN = "oxygen";
     class Special extends TypedClass {
       constructor (json, typeDefs, id) {
         super(json, typeDefs, "special" + id);
+        this.category = Category.SPECIAL;
 
         if (this.count) {
           this.incrementVal = new Selector(this.incrementVal);
@@ -931,7 +947,7 @@ const OXYGEN = "oxygen";
       increment(gameData) {
         // TODO plus or minus
         let vals = this.incrementVal.getVals(gameData);
-        let inc = vals.length;
+        let inc = vals.length * 2;
         this.count = this.count - inc;
       }
 
