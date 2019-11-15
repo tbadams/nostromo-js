@@ -498,17 +498,12 @@
       "onToggle":"airlock"
     },
     {
-      "id":"oxygen",
       "type":"oxygen",
       "count":8000,
       "incrementVal":{
         "category":"actors",
         "breathe":true
-      },
-      "ai":"count",
-      "actions":[
-        "count"
-      ]
+      }
     }
   ],
   "actors": [
@@ -563,7 +558,7 @@
         "actions":[
           "move"
         ],
-        "speed":20,
+        "speed":4,
         "breathe":false
       },
       "creature":{
@@ -632,7 +627,15 @@
         "floorAction":null
       },
       "airlock":{},
-      "oxygen":{}
+      "oxygen":{
+        "id":"oxygen",
+        "ai":"count",
+        "actions":[
+          "count"
+        ],
+        "activated":true,
+        "countMultiplier":2
+      }
     },
     "doors": {
       "default": {
