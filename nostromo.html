@@ -5,7 +5,10 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
-      <p id="time">Time:0</p>
+    <p id="topBar">
+      <span id="time">Time:0</span>
+      <span id="oxygen"></span>
+    </p>
 
       <div  class="main" style="overflow:auto;">&nbsp;
         <div id="events">&nbsp;</div>
@@ -40,7 +43,9 @@
 
 /*
 TODO:
+actions have speed
 SEPERATE GODDAMN FILES
+refine selectors
   miss chance
   wound logs
   show pending action
@@ -105,6 +110,7 @@ const COMBAT_ACTIONS = "combat-actions";
 const OTHER_ACTIONS = "other-actions";
 const VOID = "void"; // Room for when need "nowhere"
 const CATEGORY_ALL = "all";
+const OXYGEN = "oxygen";
 
 
     function loadJSON(callback) {
@@ -263,7 +269,6 @@ const CATEGORY_ALL = "all";
     }
 
     function gameLoop(gameData) {
-        document.getElementById("time").innerHTML = ("Time:" + gameData.state.time);
         var eventBus = []
         var scheduler = gameData.scheduler;
 
@@ -377,6 +382,15 @@ const CATEGORY_ALL = "all";
 
     function draw(gameData) {
       var view = gameData.transient.view;
+
+      // Top bar
+      document.getElementById("time").innerHTML = ("Time:" + gameData.state.time);
+      let oxygen = gameData.getByCategoryId(CATEGORY_ALL, OXYGEN);
+      if (oxygen) {
+        document.getElementById(OXYGEN).innerHTML = ("Oxygen:" + oxygen.count);
+      }
+
+
       // PC tabs
       for (let pcId in view.pcTabs) {
         var tab = view.pcTabs[pcId];
