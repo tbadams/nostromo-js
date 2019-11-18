@@ -408,7 +408,9 @@
     {
       "id":"bridge",
       "special": [
-        {"type":"self-destruct"}
+        {
+          "type":"self-destruct"
+        }
       ],
       "items":[
         {"type":"Motion Tracker"},
@@ -499,11 +501,7 @@
     },
     {
       "type":"oxygen",
-      "count":8000,
-      "incrementVal":{
-        "category":"actors",
-        "breathe":true
-      }
+      "count":8000
     }
   ],
   "actors": [
@@ -617,10 +615,30 @@
     },
     "special": {
       "default":{
-        "carryable":false
+        "carryable":false,
+        "incrementVal":1
       },
       "self-destruct": {
-          "floorAction":null
+          "floorAction":{
+            "type":"toggle",
+            "target":"self-destruct",
+            "duration":0
+          },
+          "ai":"count",
+          "actions":[
+            "count"
+          ],
+          "count":300,
+          "id":"destruct",
+          "triggerEvent":{
+            "effect":"kill",
+            "selector":{
+              "has":[
+                "health"
+              ]
+            }
+          },
+          "activated": false
       },
       "hypersleep": {},
       "toggle":{
@@ -634,7 +652,18 @@
           "count"
         ],
         "activated":true,
-        "countMultiplier":2
+        "countMultiplier":2,
+        "incrementVal":{
+          "category":"actors",
+          "breathe":true
+        },
+        "triggerEvent":{
+          "effect":"kill",
+          "selector":{
+            "category":"actors",
+            "breathe":true
+          }
+        }
       }
     },
     "doors": {

@@ -8,6 +8,7 @@
     <p id="topBar">
       <span id="time">Time:0</span>
       <span id="oxygen"></span>
+      <span id="destruct"></span>
     </p>
 
       <div  class="main" style="overflow:auto;">&nbsp;
@@ -44,6 +45,7 @@
 /*
 TODO:
 actions have speed
+isalive refactor
 SEPERATE GODDAMN FILES
 move category into TypedClass
 refine selectors
@@ -112,6 +114,7 @@ const OTHER_ACTIONS = "other-actions";
 const VOID = "void"; // Room for when need "nowhere"
 const CATEGORY_ALL = "all";
 const OXYGEN = "oxygen";
+const DESTRUCT = "destruct";
 
 
     function loadJSON(callback) {
@@ -391,6 +394,12 @@ const OXYGEN = "oxygen";
         let displayCount = Math.max(0, oxygen.count);
         document.getElementById(OXYGEN).innerHTML = ("Oxygen:" + displayCount);
       }
+      let destruct = gameData.getByCategoryId(CATEGORY_ALL, DESTRUCT);
+      if (destruct) { // TODO when active only
+        // TODO account for tics vs seconds
+        document.getElementById(DESTRUCT).innerHTML =
+        "Self Destruct: " + timeFormat(destruct.count);
+      }
 
       // PC tabs
       for (let pcId in view.pcTabs) {
@@ -462,6 +471,14 @@ const OXYGEN = "oxygen";
         view.status.pcStatus.innerHTML = pc.id + " is " + healthText
             + " and stable."
       }
+    }
+
+    function timeFormat(seconds) {
+      if (seconds < 0) {return "0:00";}
+      let min = Math.floor(seconds / 60);
+      let remainder = seconds % 60;
+      let secondsZero = remainder < 10 ? "0" : "";
+      return min + ":" + secondsZero + remainder;
     }
 
     function emptyElem(elem) {
@@ -777,6 +794,11 @@ const OXYGEN = "oxygen";
                     throw Error("No defined type: " + jsonType);
                 }
             }
+
+            if (this.health && !this.hp) {
+              this.hp = this.health;
+            }
+
             Object.assign(this, json); // Specific instance
             this.transient = {};
             this.transient.items = [];
@@ -840,6 +862,13 @@ const OXYGEN = "oxygen";
               throw new Error("Unsupported category " + category);
           }
         }
+
+        isAlive() {
+          if(!this.health) {
+            throw Error(this.id + " has no health.");
+          }
+          return this.hp > 0;
+        }
     }
 
     class Actor extends TypedClass {
@@ -856,18 +885,10 @@ const OXYGEN = "oxygen";
                   + JSON.stringify(actor));
           }
         }
-
-        if (!this.hp) {
-          this.hp = this.health;
-        }
       }
 
       takesActions() {
         return super.takesActions() && this.isAlive();
-      }
-
-      isAlive() {
-        return this.hp > 0;
       }
     }
 
@@ -936,6 +957,7 @@ const OXYGEN = "oxygen";
       }
     }
 
+// TODO "counter" amd "increment" but really counting down
     class Special extends TypedClass {
       constructor (json, typeDefs, id) {
         super(json, typeDefs, "special" + id);
@@ -947,25 +969,20 @@ const OXYGEN = "oxygen";
       }
 
       increment(gameData) {
-        // TODO plus or minus
-        let vals = this.incrementVal.getVals(gameData);
-        let inc = vals.length;
-        if (this.countMultiplier) {
-          inc = inc * this.countMultiplier;
-        }
-        this.count = this.count - inc;
-        if (this.count <= 0) {
-          this.trigger(gameData)
+        if (this.activated) {
+          let inc = this.incrementVal.getNum(gameData);
+          if (this.countMultiplier) {
+            inc = inc * this.countMultiplier;
+          }
+          this.count = this.count - inc;
+          if (this.count <= 0) {
+            this.onTrigger(gameData)
+          }
         }
       }
 
-      trigger(gameData) {
-        let breathers = this.incrementVal.getVals(gameData);
-        for (let breather of breathers) {
-          if (breather.hp) {
-            breather.hp = -10000; // lol
-          }
-        }
+      onTrigger(gameData) {
+
         // Ta-dah!! you're dead
       }
     }
@@ -978,8 +995,16 @@ const OXYGEN = "oxygen";
         this.json = json;
       }
 
+      getNum(gameData) {
+        if (typeof(this.json) === "number") {
+          return this.json;
+        }
+        // TODO param
+        return this.getVals(gameData).length;
+      }
+
       // Return wrapped int value, or use selector object to find referenced value(s)
-      getVals(gameData) {
+      getVals(gameData) { // TODO gameData query method?
         return gameData.getAll().filter(obj=>{
           for (let field in this.json) {
             if (!obj[field] || !(obj[field] === this.json[field])) {
@@ -987,7 +1012,7 @@ const OXYGEN = "oxygen";
             }
           }
           // return true;
-          return !obj.heath || obj.isAlive(); // TODO generify somehow
+          return !obj.health || obj.isAlive(); // TODO generify somehow
         });
       }
     }
