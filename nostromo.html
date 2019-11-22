@@ -39,12 +39,15 @@
 </html>
 
 <script src="buckets.js"></script>
+<script src="dataTests.js"></script>
+<script src="server.js"></script>
 <script>
 "use strict"
 
 /*
 TODO:
 actions have speed
+counter start should delay 1 tick (to show 5:00 on bomb timer)
 isalive refactor
 SEPERATE GODDAMN FILES
 move category into TypedClass
@@ -86,7 +89,8 @@ const Actions = {
   DROP:"drop",
   USE:"use",
   CAPTURE:"capture",  // TODO generic target action
-  COUNT:"count"
+  COUNT:"count",
+  ACTIVATE:"activate"
 };
 const Events = {
   LOG:"log"
@@ -116,19 +120,6 @@ const CATEGORY_ALL = "all";
 const OXYGEN = "oxygen";
 const DESTRUCT = "destruct";
 
-
-    function loadJSON(callback) {
-        var xobj = new XMLHttpRequest();
-        xobj.overrideMimeType("application/json");
-        xobj.open('GET', 'http://localhost:8080/nostromo.json', true);
-        xobj.onreadystatechange = function () {
-            if (xobj.readyState == 4 && xobj.status == "200") {
-                callback(xobj.responseText);
-            }
-        };
-        xobj.send(null);
-    }
-
     loadJSON(function(response) {
         let errorPattern = /(\d+).*/g;
         var parsed;
@@ -153,12 +144,27 @@ const DESTRUCT = "destruct";
           return;
         }
         var gameData = new GameData(parsed);
+        preInitTests(gameData);
         init(gameData);
         initUi(gameData);
         setInterval(function () {
             gameLoop(gameData);
         }, TICK_LENGTH);
     });
+
+    function preInitTests (gameData) {
+      let testResults = testAll();
+      let failed = testResults.filter(result=>!result.passed);
+
+      if (failed.length > 0) {
+        let report = "" + failed.length + " of " + testResults.length
+            + " tests failed:\n";
+        for (let result of failed) {
+          report += result.name + ":\n" + result.error.message + "\n\n";
+        }
+        alert(report);
+      }
+    }
 
     function init(gameData) {
       if (!gameData.state) {
@@ -292,7 +298,7 @@ const DESTRUCT = "destruct";
           // not preoccupied doing something, like being dead or in a box
             if (actor.takesActions() && !gameData.isBusy(actor.id)) {
                 var choices = Action.getChoices(actor, gameData);
-                // AI actions
+                // AI actionsgameData.getAll()
                 if (actor.ai != AI_PLAYER) {
                     // TODO Specific AIs
                     if (choices.length > 0) {
@@ -395,10 +401,12 @@ const DESTRUCT = "destruct";
         document.getElementById(OXYGEN).innerHTML = ("Oxygen:" + displayCount);
       }
       let destruct = gameData.getByCategoryId(CATEGORY_ALL, DESTRUCT);
-      if (destruct) { // TODO when active only
+      if (destruct && destruct.activated) { // show only when counting down
         // TODO account for tics vs seconds
         document.getElementById(DESTRUCT).innerHTML =
         "Self Destruct: " + timeFormat(destruct.count);
+      } else {
+        document.getElementById(DESTRUCT).innerHTML = "";
       }
 
       // PC tabs
@@ -408,9 +416,11 @@ const DESTRUCT = "destruct";
           tab.style.color = "green";
         } else {
           tab.style.color = "black";
-          if (!gameData.getByCategoryId(Category.ACTORS, pcId).isAlive()) {
-            tab.style.opacity = 0.6;
-          }
+        }
+
+        if (!gameData.getByCategoryId(Category.ACTORS, pcId).isAlive()) {
+          tab.style.color = "black";
+          tab.style.opacity = 0.6;
         }
       }
 
@@ -466,7 +476,7 @@ const DESTRUCT = "destruct";
         } else if (!pc.isAlive()) {
           healthText = "dead";
         } else {
-          healthText = "drunk";
+          healthText = "drunk"; // this is a joke
         }
         view.status.pcStatus.innerHTML = pc.id + " is " + healthText
             + " and stable."
@@ -611,6 +621,16 @@ const DESTRUCT = "destruct";
             // For logic actors
             addIfSupported(new Action(Actions.COUNT, null, actor, 1));
 
+            if (room) { // TODO deduplicate w/ above
+              let specialsHere = room.getContained(Category.SPECIAL);
+              for (let special of specialsHere) {
+                if (special.floorAction) {
+                  let action = new Action(Actions.ACTIVATE, special, actor, 3);
+                  addIfSupported(action);
+              }
+            }
+          }
+
             return out;
         }
 
@@ -657,6 +677,11 @@ const DESTRUCT = "destruct";
               gameData.actors.splice(gameData.actors.indexOf(target));
             } else if (event.type === Actions.COUNT) {
               actor.increment(gameData);
+            } else if (event.type === Actions.ACTIVATE) {
+              let targetObject =  event.target;
+              if (targetObject.onActivated) { // TODO and it's a function
+                targetObject.onActivated(event.source, gameData);
+              }
             } else {
               throw Error("undefined action " + event)
             }
@@ -688,7 +713,7 @@ const DESTRUCT = "destruct";
             }
         }
 
-        isValid(gameData) {
+        isValid(gameData) { // TODO must die
           if (!gameData) {throw new Error("NO MORE NULL GAMEDATA");}
           let actor = this.actor;
           let actionMap = actor.getActionMap();
@@ -717,6 +742,8 @@ const DESTRUCT = "destruct";
             case Actions.USE:
               return (actorRoom.getItems().includes(target) || actor.getItems().includes(target))
                   && target.isUsable();
+            case Actions.ACTIVATE:
+              return actorRoom.getContained(Category.SPECIAL).includes(this.target);
             case Actions.COUNT:
             case Events.LOG:
               return true;
@@ -742,6 +769,9 @@ const DESTRUCT = "destruct";
               return "Use " + this.target.type;
             case Actions.CAPTURE:
               return "Catch " + this.target.id;
+            case Actions.ACTIVATE:
+              // TODO special text
+              return "Activate " + this.target.type;
             default:
               throw new Error("Unsupported action text: " + this.type);
           }
@@ -750,6 +780,7 @@ const DESTRUCT = "destruct";
         getEventText(gameData) {
             let type = this.type;
             // TODO record payload, e.g. damage, increment, etc.
+            // TODO Generify, obvs
             switch(type) {
               case Actions.MOVE:
                 return this.actor.id + " moved to " + this.target + ".";
@@ -766,6 +797,8 @@ const DESTRUCT = "destruct";
                 return this.actor.id + " used " + this.target.type + ".";
               case Actions.CAPTURE:
                 return this.actor.id + " captured " + this.target.type + ".";
+              case Actions.ACTIVATE:
+                return this.actor.id + " activated " + this.target.type + ".";
               case Actions.COUNT:
                 return null;
               case Events.LOG:
@@ -820,7 +853,10 @@ const DESTRUCT = "destruct";
         takesActions() {return this.ai}
 
         getContained(category) {
-          return this.transient[category];
+          if (this.transient[category]) {
+            return this.transient[category];
+          }
+          return [];
         }
 
         getItems() {
@@ -875,7 +911,6 @@ const DESTRUCT = "destruct";
       constructor(json, defs) {
         super(json, defs);
         this.category = Category.ACTORS;
-
         // TODO default or require: inventory, attack
         // TODO random location option
         let required = ["roomName", "actions"];
@@ -953,7 +988,7 @@ const DESTRUCT = "destruct";
 
       isUsable() {
         // weapons dpon't count
-        return this.actions.length > 0;
+        return tdocument.getElementById(DESTRUCT).innerHTML =his.actions.length > 0;
       }
     }
 
@@ -964,7 +999,24 @@ const DESTRUCT = "destruct";
         this.category = Category.SPECIAL;
 
         if (this.count) {
+          this.startCount = this.count;// TODO names??
           this.incrementVal = new Selector(this.incrementVal);
+          if(!this.triggerEvent) {
+            throw Error("Counter without triggerEvent");
+          } else if (!this.triggerEvent.selector || !this.triggerEvent.effect) {
+            throw Error("triggerEvent without effect and selector")
+          }
+          this.triggerEvent.selector = new Selector(this.triggerEvent.selector);
+          // validate effect
+          handleEffect({}, this.triggerEvent.effect);
+        }
+      }
+
+      onActivated() {
+        this.activated = !this.activated;
+        if (this.activated && this.hasOwnProperty("count")) {
+          // Reset to starting count
+          this.count = this.startCount;
         }
       }
 
@@ -982,8 +1034,24 @@ const DESTRUCT = "destruct";
       }
 
       onTrigger(gameData) {
+        let selected = this.triggerEvent.selector.getVals(gameData);
+        let effect = this.triggerEvent.effect;
+        for (let obj of selected) {
+          handleEffect(obj, effect);
+        }
+      }
+    }
 
-        // Ta-dah!! you're dead
+    // TODO put somewhere
+    function handleEffect(obj, effect) {
+      switch (effect) {
+        case "kill":
+          if (obj.hp) {
+            obj.hp = -10000;  // Ta-dah!! you're dead
+          }
+          break;
+        default:
+          throw Error("Unhandled effect.");
       }
     }
 
@@ -1005,15 +1073,28 @@ const DESTRUCT = "destruct";
 
       // Return wrapped int value, or use selector object to find referenced value(s)
       getVals(gameData) { // TODO gameData query method?
-        return gameData.getAll().filter(obj=>{
-          for (let field in this.json) {
-            if (!obj[field] || !(obj[field] === this.json[field])) {
+        let all = gameData.getAll();
+        let out = all.filter(obj=>this.shouldSelect(obj));
+        return out;
+      }
+
+      shouldSelect(obj) {
+        if (this.json.has) {
+          for (let field of this.json.has) {
+            if (!obj[field]) {
               return false;
             }
           }
-          // return true;
-          return !obj.health || obj.isAlive(); // TODO generify somehow
-        });
+        }
+        if (this.json.is) {
+          for (let field in this.json.is) {
+            if (!obj[field] || !(obj[field] === this.json.is[field])) {
+              return false;
+            }
+          }
+        }
+
+        return !obj.health || !obj.isAlive || obj.isAlive(); // TODO generify somehow
       }
     }
   </script>

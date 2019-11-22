@@ -546,7 +546,8 @@
           "unlock",
           "get",
           "drop",
-          "use"]
+          "use",
+          "activate"]
       },
       "human":{},
       "cat":{
@@ -620,7 +621,7 @@
       },
       "self-destruct": {
           "floorAction":{
-            "type":"toggle",
+            "type":"activate",
             "target":"self-destruct",
             "duration":0
           },
@@ -654,14 +655,18 @@
         "activated":true,
         "countMultiplier":2,
         "incrementVal":{
-          "category":"actors",
-          "breathe":true
+          "is": {
+            "category":"actors",
+            "breathe":true
+          }
         },
         "triggerEvent":{
           "effect":"kill",
           "selector":{
-            "category":"actors",
-            "breathe":true
+            "is":{
+              "category":"actors",
+              "breathe":true
+            }
           }
         }
       }
