@@ -216,15 +216,17 @@ class Action {
         }
     }
 
-    static log(event, gameData) {
-      var log = document.getElementById("events");
+    static log(event, gameData) { // TODO this is front end
+      let log = document.getElementById("events");
+      let eventText
       if (event.msg) {
-        log.innerHTML = log.innerHTML + event.msg + "<br/>";
+        eventText = event.msg;
       } else {
-        let eventText = event.getEventText(gameData);
-        if (eventText) {
-          log.innerHTML= log.innerHTML + (eventText + "<br/>");
-        }
+        eventText = event.getEventText(gameData);
+      }
+      if (eventText) {
+        log.innerHTML = log.innerHTML + "<span class=\"event\">"
+            + eventText+ "</span><br/>";
       }
     }
 

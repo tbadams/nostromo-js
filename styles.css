@@ -50,6 +50,18 @@ body {
   color:red
 }
 
+#topBar {
+  background: #222222
+}
+
+#oxygen {
+  color:aqua
+}
+
+#destruct {
+  color:#ff8800
+}
+
 /* scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
