@@ -1,5 +1,27 @@
 "use strict"
 
+const Actions = {
+  MOVE:"move",
+  UNLOCK:"unlock",
+  ATTACK:"attack",
+  GET:"get",
+  DROP:"drop",
+  USE:"use",
+  CAPTURE:"capture",  // TODO generic target action
+  COUNT:"count",
+  ACTIVATE:"activate"
+};
+const Events = {
+  LOG:"log"
+};
+const Category = {
+  DOORS:"doors",
+  ITEMS:"items",
+  ACTORS:"actors",
+  ROOMS:"rooms",
+  SPECIAL:"special"
+};
+
 class GameData {
   constructor(json) {
     Object.assign(this, json);
@@ -218,14 +240,21 @@ class Action {
 
     isValid(gameData) { // TODO must die
       if (!gameData) {throw new Error("NO MORE NULL GAMEDATA");}
-      let actor = this.actor;
+
+      let actor = this.actor; // object
       let actionMap = actor.getActionMap();
+      let target = this.target;
+
       if (!actionMap[this.type]) {
         return false;
       }
-      let target = this.target;
+      if (!actor.takesActions()) {
+        return false;
+      }
+
       let actorRoom = gameData
           .getByCategoryId(Category.ROOMS, actor.roomName);
+
       switch(this.type) {
         case Actions.MOVE: // target=roomName
           return actorRoom.getLinks(gameData).includes(target);
