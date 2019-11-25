@@ -150,7 +150,7 @@ class Action {
           let specialsHere = room.getContained(Category.SPECIAL);
           for (let special of specialsHere) {
             if (special.floorAction) {
-              let action = new Action(Actions.ACTIVATE, special, actor, 3);
+              let action = new Action(Actions.ACTIVATE, special, actor, 1);
               addIfSupported(action);
           }
         }

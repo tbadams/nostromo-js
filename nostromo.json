@@ -641,7 +641,11 @@
           },
           "activated": false
       },
-      "hypersleep": {},
+      "hypersleep": {
+        "floorAction":{
+          "type":"activate"
+        }
+      },
       "toggle":{
         "floorAction":null
       },
