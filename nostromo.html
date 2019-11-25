@@ -414,7 +414,7 @@ const DESTRUCT = "destruct";
         if (pc.isAlive() && !gameData.isBusy(pc.id)) {
           for(let action of choices) {
             var newButton = document.createElement("BUTTON");
-            newButton.innerHTML = action.getMenuText();
+            newButton.innerHTML = getMenuText(action);
             newButton.onclick=function(){
               Action.takeAction(pc, action, gameData)
               draw(gameData);
@@ -467,6 +467,77 @@ const DESTRUCT = "destruct";
     function emptyElem(elem) {
       while(elem.hasChildNodes()) {
         elem.removeChild(elem.lastChild);
+      }
+    }
+
+    function getMenuText(action) {
+      // TODO make consistent?
+      switch(action.type) {
+        case Actions.MOVE:
+          return action.target;
+        case Actions.UNLOCK:
+          return "Unlock Grate"; // TODO localize?
+        case Actions.ATTACK:
+          return "Attack " + action.target.id;
+        case Actions.GET:
+          return action.target.type;
+        case Actions.DROP:
+          return "Drop " + action.target.type;
+        case Actions.USE:
+          return "Use " + action.target.type;
+        case Actions.CAPTURE:
+          return "Catch " + action.target.id;
+        case Actions.ACTIVATE:
+          // TODO special text
+          return "Activate " + action.target.type;
+        default:
+          throw new Error("Unsupported action text: " + action.type);
+      }
+    }
+
+    function getEventText(event, gameData) {
+        let type = event.type;
+        // TODO record payload, e.g. damage, increment, etc.
+        // TODO Generify, obvs
+        switch(type) {
+          case Actions.MOVE:
+            return event.actor.id + " moved to " + event.target + ".";
+          case Actions.UNLOCK:
+            return event.actor.id + " unlocked " + event.target.id + ".";
+          case Actions.ATTACK:
+            // TODO passive voice?
+            return event.actor.id + " attacked " + event.target.id + ".";
+          case Actions.GET:
+            return event.actor.id + " picked up " + event.target.type + ".";
+          case Actions.DROP:
+            return event.actor.id + " dropped " + event.target.type + ".";
+          case Actions.USE:
+            return event.actor.id + " used " + event.target.type + ".";
+          case Actions.CAPTURE:
+            return event.actor.id + " captured " + event.target.type + ".";
+          case Actions.ACTIVATE:
+            return event.actor.id + " activated " + event.target.type + ".";
+          case Actions.COUNT:
+            return null;
+          case Events.LOG:
+            // TODO debug flag
+            return "Log: " + target;
+        }
+
+        return "UNHANDLED EVENT:" + JSON.stringify(event);
+    }
+
+    function log(event, gameData) {
+      let log = document.getElementById("events");
+      let eventText
+      if (event.msg) {
+        eventText = event.msg;
+      } else {
+        eventText = getEventText(event, gameData);
+      }
+      if (eventText) {
+        log.innerHTML = log.innerHTML + "<span class=\"event\">"
+            + eventText+ "</span><br/>";
       }
     }
   </script>

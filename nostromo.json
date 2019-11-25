@@ -1,5 +1,8 @@
 {
   "todo":"move category objects to own sub object",
+  "config": {
+    "debug":false
+  },
   "doors": [
     {
       "rooms": [

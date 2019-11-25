@@ -60,6 +60,10 @@ class GameData {
     var busyActors = this.scheduler.toArray().map((a)=>a.actor.id); // TODO non-actors
     return busyActors.includes(actorId);
   }
+
+  isDebug() {
+    return this.config && this.config.debug;
+  }
 }
 
 class Action {
@@ -210,24 +214,10 @@ class Action {
         } else {
           throw Error("undefined action " + event)
         }
-        this.log(event, gameData);
+        log(event, gameData);
         for (let effect of effects) {
-          this.log(effect, gameData);
+          log(effect, gameData);
         }
-    }
-
-    static log(event, gameData) { // TODO this is front end
-      let log = document.getElementById("events");
-      let eventText
-      if (event.msg) {
-        eventText = event.msg;
-      } else {
-        eventText = event.getEventText(gameData);
-      }
-      if (eventText) {
-        log.innerHTML = log.innerHTML + "<span class=\"event\">"
-            + eventText+ "</span><br/>";
-      }
     }
 
     static takeAction(actor, action, gameData) { // todo rename queue
@@ -284,63 +274,6 @@ class Action {
         default:
           throw new Error("Unsupported action validation: " + this.type);
       }
-    }
-
-    getMenuText() {
-      // TODO make consistent?
-      switch(this.type) {
-        case Actions.MOVE:
-          return this.target;
-        case Actions.UNLOCK:
-          return "Unlock Grate"; // TODO localize?
-        case Actions.ATTACK:
-          return "Attack " + this.target.id;
-        case Actions.GET:
-          return this.target.type;
-        case Actions.DROP:
-          return "Drop " + this.target.type;
-        case Actions.USE:
-          return "Use " + this.target.type;
-        case Actions.CAPTURE:
-          return "Catch " + this.target.id;
-        case Actions.ACTIVATE:
-          // TODO special text
-          return "Activate " + this.target.type;
-        default:
-          throw new Error("Unsupported action text: " + this.type);
-      }
-    }
-
-    getEventText(gameData) {
-        let type = this.type;
-        // TODO record payload, e.g. damage, increment, etc.
-        // TODO Generify, obvs
-        switch(type) {
-          case Actions.MOVE:
-            return this.actor.id + " moved to " + this.target + ".";
-          case Actions.UNLOCK:
-            return this.actor.id + " unlocked " + this.target.id + ".";
-          case Actions.ATTACK:
-            // TODO passive voice?
-            return this.actor.id + " attacked " + this.target.id + ".";
-          case Actions.GET:
-            return this.actor.id + " picked up " + this.target.type + ".";
-          case Actions.DROP:
-            return this.actor.id + " dropped " + this.target.type + ".";
-          case Actions.USE:
-            return this.actor.id + " used " + this.target.type + ".";
-          case Actions.CAPTURE:
-            return this.actor.id + " captured " + this.target.type + ".";
-          case Actions.ACTIVATE:
-            return this.actor.id + " activated " + this.target.type + ".";
-          case Actions.COUNT:
-            return null;
-          case Events.LOG:
-            // TODO debug flag
-            return "Log: " + target;
-        }
-
-        return "UNHANDLED EVENT:" + JSON.stringify(event);
     }
 }
 
