@@ -21,11 +21,18 @@ body {
   border-color: green;
   border-width: medium;
   display: block;
+  text-align: center;
+  color:green;
 }
 
 .menu button {
   display: block;
-  width:100%
+  width:100%;
+  background-color:black;
+  color:#00ff00;
+  border-left:none;
+  border-right:none;
+  border-color:green;
 }
 .status {
   width: 100%
