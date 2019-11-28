@@ -21,6 +21,13 @@ const Category = {
   ROOMS:"rooms",
   SPECIAL:"special"
 };
+// Visibility states of events, used for displaying events in log.
+const Observed = {
+    SELF:"self",
+    ACTIVE:"active", // Selected PC present
+    PASSIVE:"passive", // PC present but not selected
+    NONE:"none" // event initiated by user
+}
 
 class GameData {
   constructor(json) {
@@ -163,17 +170,27 @@ class Action {
         return out;
     }
 
+    static takeAction(actor, action, gameData) { // todo rename queue
+        if (action.isValid(gameData)) {
+          let speed = actor.speed ? actor.speed : 1;
+          action.time = gameData.state.time + (action.duration * speed);
+          gameData.scheduler.enqueue(action);
+        } else {
+          gameData.scheduler.enqueue(new Action(Events.LOG, "invalid action taken", 0));
+        }
+    }
+
     static handleAction(event, gameData) {
         let effects = [];
-        let actor = event.actor;
-        let actorRoom = gameData
+        let actor = event.actor; // cur. object
+        let actorRoom = gameData // TODO make room part of event?
             .getByCategoryId(Category.ROOMS, event.actor.roomName);
         let target = event.target;
         if (event.type === Actions.MOVE) {
-            event.actor.roomName = event.target;
-            // TODO fucking move fuck tshit ass
+            let targetRoom = gameData.getByCategoryId(Category.ROOMS, event.target);
+            actor.move(actorRoom, targetRoom);
         } else if (event.type === Actions.UNLOCK) {
-            event.target.locked = false;
+            target.locked = false;
         } else if (event.type === Actions.ATTACK) {
             let weapon = event.source;
             let targetWasAlive = target.isAlive();
@@ -188,22 +205,16 @@ class Action {
               }
             }
         } else if (event.type === Actions.GET) {
-          let item = event.target;
-          item.roomName = actor.id; // TODO do... something else
-          actorRoom.transient.items = actorRoom.getItems().filter((thing)=>thing != item);
-            event.actor.transient.items.push(event.target);
+          target.move(actorRoom, actor);
         } else if (event.type === Actions.DROP) {
-          // Move item to room
-          let item = event.target;
-          item.roomName = actorRoom.id;
-          event.actor.transient.items = event.actor.getItems().filter((thing)=>thing != item);
-          actorRoom.transient.items.push(item);
-        } else if (event.type === Actions.USE) {
-          // TODO ...use it
+          target.move(actor, actorRoom);
         } else if (event.type === Actions.CAPTURE) {
+          // TODO use .move()
           event.source.captive = target;
           target.roomName = VOID;
           gameData.actors.splice(gameData.actors.indexOf(target));
+        } else if (event.type === Actions.USE) {
+          // TODO ...use it
         } else if (event.type === Actions.COUNT) {
           actor.increment(gameData);
         } else if (event.type === Actions.ACTIVATE) {
@@ -220,14 +231,8 @@ class Action {
         }
     }
 
-    static takeAction(actor, action, gameData) { // todo rename queue
-        if (action.isValid(gameData)) {
-          let speed = actor.speed ? actor.speed : 1;
-          action.time = gameData.state.time + (action.duration * speed);
-          gameData.scheduler.enqueue(action);
-        } else {
-          gameData.scheduler.enqueue(new Action(Events.LOG, "invalid action taken", 0));
-        }
+    observe(gameData) {
+
     }
 
     isValid(gameData) { // TODO must die
@@ -249,9 +254,11 @@ class Action {
 
       switch(this.type) {
         case Actions.MOVE: // target=roomName
+          // TODO if refactor target to door, they're both in same room
+          // TODO oh would also need to make rooms contain doors :-p
           return actorRoom.getLinks(gameData).includes(target);
         case Actions.UNLOCK: // target=door object
-          return target.rooms.includes(actor.roomName);
+          return target.rooms.includes(actor.roomName); // TODO refactor to room contains
         case Actions.ATTACK: // actor object
           return actor.roomName === target.roomName && target.attackable
               && target.isAlive();
@@ -301,6 +308,7 @@ class TypedClass {
 
         Object.assign(this, json); // Specific instance
         this.transient = {};
+        // TODO generify into "supported children types" or something
         this.transient.items = [];
 
         // Validate common properties
@@ -320,10 +328,38 @@ class TypedClass {
     takesActions() {return this.ai}
 
     getContained(category) {
+      if (category === CATEGORY_ALL) {
+        let out = [];
+        for (let key in this.transient) {
+          out = out.concat(out, this.getContained(key));
+        }
+        return out;
+      }
       if (this.transient[category]) {
         return this.transient[category];
       }
       return [];
+    }
+
+    contains(object) {
+      return this.getContained(CATEGORY_ALL).includes(object);
+    }
+
+    remove(contained) {
+      if (!this.contains(contained)) {throw Error("Can't remove "
+          + contained.id + ", not contained.");}
+      let category = contained.category;
+      this.transient[category] = this.transient[category]
+          .filter((thing)=>thing != contained);
+    }
+
+    insert(object) {
+      if (!this.transient[object.category]) {
+        this.transient[object.category] = [];
+      }
+      if (this.contains(object)) {throw Error(object.id
+          + " already contained.");}
+      this.transient[object.category].push(object);
     }
 
     getItems() {
@@ -371,6 +407,21 @@ class TypedClass {
         throw Error(this.id + " has no health.");
       }
       return this.hp > 0;
+    }
+
+    // Resolve movement action, handle state changes
+    move(originObject, destinationObject) {
+      if (!originObject || !destinationObject) {
+        throw Error("null participants in move");
+      }
+      let moverCategory = this.category;
+      if (!originObject.contains(this)) {
+        throw Error ("move not at origin");
+      }
+
+      this.roomName = destinationObject.id;
+      originObject.remove(this);
+      destinationObject.insert(this);
     }
 }
 
