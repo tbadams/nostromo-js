@@ -34,6 +34,7 @@ class GameData {
     Object.assign(this, json);
     this.transient = {};
     this.transient.byId = {};
+    this.history = [];
   }
 
   getDefs(defType) {
@@ -228,8 +229,10 @@ class Action {
           throw Error("undefined action " + event)
         }
         log(event, gameData);
+        gameData.history.push(event);
         for (let effect of effects) {
           log(effect, gameData);
+          gameData.history.push(effect);
         }
     }
 
