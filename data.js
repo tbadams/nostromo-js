@@ -21,14 +21,7 @@ const Category = {
   ROOMS:"rooms",
   SPECIAL:"special"
 };
-// Visibility states of events, used for     }
-
-    static handleAction(event, gameData) {
-        event.observe(gameData);
-
-        let effects = [];
-        let actor = event.actor; // cur. object
-        let actorRoom = gameData // TODO make room part of event?displaying events in log.
+// Visibility states of events, used for displaying events in log.
 const Observed = {
     SELF:"self",
     ACTIVE:"active", // Selected PC present
