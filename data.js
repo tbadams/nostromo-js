@@ -21,7 +21,14 @@ const Category = {
   ROOMS:"rooms",
   SPECIAL:"special"
 };
-// Visibility states of events, used for displaying events in log.
+// Visibility states of events, used for     }
+
+    static handleAction(event, gameData) {
+        event.observe(gameData);
+
+        let effects = [];
+        let actor = event.actor; // cur. object
+        let actorRoom = gameData // TODO make room part of event?displaying events in log.
 const Observed = {
     SELF:"self",
     ACTIVE:"active", // Selected PC present
@@ -181,6 +188,8 @@ class Action {
     }
 
     static handleAction(event, gameData) {
+        event.observe(gameData);
+
         let effects = [];
         let actor = event.actor; // cur. object
         let actorRoom = gameData // TODO make room part of event?
@@ -231,8 +240,49 @@ class Action {
         }
     }
 
+// Calculate actors witnessing this event, and provide front-end state.
     observe(gameData) {
+      let actor = this.actor; // cur. object
+      let actorRoom = gameData // TODO make room part of event?
+          .getByCategoryId(Category.ROOMS, actor.roomName);
+      let target = this.target;
 
+      let observers = {};
+      let scopes = [];
+      if (actorRoom) { // some actors have no location
+        scopes.push(actorRoom);
+      }
+      if (this.type === Actions.MOVE) {
+        let targetRoom = gameData.getByCategoryId(Category.ROOMS, target);
+        if (!targetRoom) {
+          throw Error("Move with no destination");
+        }
+        scopes.push(targetRoom);
+      }
+
+      for (let scope of scopes) {
+        // TODO distinguish 'observers'
+        for (let observer of scope.getContained(Category.ACTORS)) {
+          observers[observer.id] = observer;
+        }
+      }
+
+      let status = Observed.NONE;
+      let selectedId = gameData.selected;
+      for (let key in observers) {
+        let observer = observers[key];
+        if (observer.isPc()) {
+            if (observer.id === selectedId) {
+              status = Observed.ACTIVE;
+              break;
+            } else {
+              status = Observed.PASSIVE;
+            }
+        }
+      }
+
+      this.observed = status;
+      this.observers = observers;
     }
 
     isValid(gameData) { // TODO must die
@@ -442,6 +492,10 @@ class Actor extends TypedClass {
 
   takesActions() {
     return super.takesActions() && this.isAlive();
+  }
+
+  isPc() {
+    return this.ai === AI_PLAYER;
   }
 }
 

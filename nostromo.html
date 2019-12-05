@@ -499,6 +499,12 @@ const DESTRUCT = "destruct";
         let type = event.type;
         // TODO record payload, e.g. damage, increment, etc.
         // TODO Generify, obvs
+
+        // Hide non-visible events
+        if (event.observed === Observed.NONE) { // TODO more flexible
+          return null;
+        }
+
         switch(type) {
           case Actions.MOVE:
             return event.actor.id + " moved to " + event.target + ".";
