@@ -109,6 +109,12 @@
     },
     {
       "rooms": [
+        "corridor5",
+        "corridor2"
+      ]
+    },
+    {
+      "rooms": [
         "corridor1",
         "living quarters"
       ],
