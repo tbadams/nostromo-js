@@ -267,7 +267,7 @@ class Action {
       let selectedId = gameData.selected;
       for (let key in observers) {
         let observer = observers[key];
-        if (observer.isPc()) {
+        if (observer.isPc() && observer.isAlive()) {
             if (observer.id === selectedId) {
               status = Observed.ACTIVE;
               break;
