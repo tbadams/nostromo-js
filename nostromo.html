@@ -267,6 +267,9 @@ const DESTRUCT = "destruct";
     }
 
     function gameLoop(gameData) {
+        if (gameData.isOver()) {
+          return;
+        }
         var eventBus = []
         var scheduler = gameData.scheduler;
 
@@ -306,6 +309,9 @@ const DESTRUCT = "destruct";
           scheduler.add(action);
         }
         // TODO cleanup, maintenance (?)
+      if (gameData.isOver()) {
+        onGameEnd();
+      }
        gameData.state.time = gameData.state.time + 1;
 
        draw(gameData);
@@ -568,5 +574,9 @@ const DESTRUCT = "destruct";
         log.innerHTML = log.innerHTML + "<span class=\"event\">"
             + eventText+ "</span><br/>";
       }
+    }
+
+    function onGameEnd() {
+      nav(Screens.ENDGAME);
     }
   </script>

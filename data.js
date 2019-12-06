@@ -75,6 +75,10 @@ class GameData {
   isDebug() {
     return this.config && this.config.debug;
   }
+
+  isOver() {
+    return this.getPcs().filter(actor => actor.takesActions()).length === 0;
+  }
 }
 
 class Action {
