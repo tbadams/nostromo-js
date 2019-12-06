@@ -1,5 +1,8 @@
 "use strict"
 
+const DEF_DEFAULT = "default";
+const DEF_TYPE = "type";
+
 const Actions = {
   MOVE:"move",
   UNLOCK:"unlock",

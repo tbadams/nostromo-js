@@ -5,6 +5,7 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
+    <div id="mainScreen" class="screen">
     <p id="topBar">
       <span id="time">&nbsp;</span>
       <span id="oxygen"></span>
@@ -35,6 +36,10 @@
         <div id="pc-status"></div>
         <div id="room-description"></div>
       </div>
+    </div>
+    <div id="endgame" class="screen">
+        GARBAGE DAY
+    </div>
   </body>
 </html>
 
@@ -51,33 +56,32 @@ TODO:
 actions have speed
 counter start should delay 1 tick (to show 5:00 on bomb timer)
 isalive refactor
-SEPERATE GODDAMN FILES
 move category into TypedClass
 refine selectors
-  miss chance
-  wound logs (and miss) as seprate event
-  show pending action
-  acid blood
-  all interobject refs through IDs, no references
-  replace void room with item/actor/etc. "rooms"
-    generic item action code
-  ai system
-  widgets and service
-  split htm and js
-  get rid of event log space
-  names, like characters -> pcs
-  deep copy def obj (?)
-  scopable event log
-  add 'config' object, mostly for debugging
-    disable clicking on dead pc tab
-  upside down event log?
-  generate js signature docs
-  map display
-  finish map
-  make movie accurate map
-  make fan recreation accurate map
-  json case insensitive?
-  pending action progress bar
+miss chance
+wound logs (and miss) as seprate event
+show pending action
+acid blood
+all interobject refs through IDs, no references (Actions remain primarily)
+generic item action code
+ai system
+split htm and js
+get rid of event log space
+names, like characters -> pcs
+deep copy def obj (?)
+scopable event log
+  different messages for diff scopes
+log to console?
+add 'config' object, mostly for debugging
+disable clicking on dead pc tab (?)
+upside down event log
+generate js signature docs
+map display
+finish map
+make movie accurate map
+make fan recreation accurate map
+json case insensitive?
+pending action progress bar
 fix stupid json error catching code
 localization??
 */
@@ -88,9 +92,12 @@ const Health = {
   WOUNDED:"wounded",
   DEAD:"dead"
 };
+const CLASS_SCREEN = "screen"
+const Screens = {
+  MAIN_SCREEN:"mainScreen",
+  ENDGAME:"endgame"
+};
 const AI_PLAYER = "player";
-const DEF_DEFAULT = "default";
-const DEF_TYPE = "type";
 const SELECTED = "selected";
 const MOVE_ACTIONS = "move-actions";
 const GET_ACTIONS = "get-actions";
@@ -310,6 +317,10 @@ const DESTRUCT = "destruct";
       gameData.transient.view = view;
       view.pcTabs = {};
 
+      // events
+      var events = {events : []};
+      view.events = events;
+
       // character tabs
       var charTabs = document.getElementById("characters");
       for (let pc of gameData.getPcs()) {
@@ -337,6 +348,8 @@ const DESTRUCT = "destruct";
 
       // Validate
       validateView(view);
+
+      nav(Screens.MAIN_SCREEN);
     }
 
     function validateView(view) {
@@ -352,6 +365,8 @@ const DESTRUCT = "destruct";
           }
         }
       }
+
+      // TODO validate all screens in Screens exist
     }
 
     function selectPc(pcId, gameData) {
@@ -456,6 +471,13 @@ const DESTRUCT = "destruct";
       }
     }
 
+    function nav(screenName) {
+      let screens = document.getElementsByClassName(CLASS_SCREEN);
+      for (let screen of screens) {
+        screen.style.display = screen.id === screenName ? "block" : "none";
+      }
+    }
+
     function timeFormat(seconds) {
       if (seconds < 0) {return "0:00";}
       let min = Math.floor(seconds / 60);
@@ -542,6 +564,7 @@ const DESTRUCT = "destruct";
         eventText = getEventText(event, gameData);
       }
       if (eventText) {
+        gameData.transient.view.events.events.push(eventText);
         log.innerHTML = log.innerHTML + "<span class=\"event\">"
             + eventText+ "</span><br/>";
       }
