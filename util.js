@@ -1,6 +1,6 @@
 "use strict"
 
-function asList(enumeration){
+function valuesAsList(enumeration){
   let out = [];
   for (let k in enumeration) {
     out.push(enumeration[k]);

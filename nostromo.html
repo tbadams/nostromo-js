@@ -38,7 +38,7 @@
       </div>
     </div>
     <div id="endgame" class="screen">
-        GARBAGE DAY
+
     </div>
   </body>
 </html>
@@ -54,6 +54,7 @@
 /*
 TODO:
 actions have speed
+split up json file
 counter start should delay 1 tick (to show 5:00 on bomb timer)
 isalive refactor
 move category into TypedClass
@@ -84,6 +85,15 @@ json case insensitive?
 pending action progress bar
 fix stupid json error catching code
 localization??
+*/
+
+/*
+from original:
+  alien does attack android
+  android seems to do less damage than alien
+  alient be REALLY fast when ti wants to
+  attacks don't seem to have a miss chance
+  significance of "being wounded" is unclear
 */
 
 const TICK_LENGTH = 1000;
@@ -191,10 +201,10 @@ const DESTRUCT = "destruct";
         }
 
         // Grab objects nested in others, extract to top level
-        for (let category of asList(Category)) {
+        for (let category of valuesAsList(Category)) {
           let objects = gameData[category];
           for (let object of objects) {
-            for (let category2 of asList(Category)){
+            for (let category2 of valuesAsList(Category)){
               if (!gameData[category2]) {
                 gameData[category2] = [];
               }
@@ -266,6 +276,7 @@ const DESTRUCT = "destruct";
         }
     }
 
+// TODO move to data?
     function gameLoop(gameData) {
         if (gameData.isOver()) {
           return;
@@ -310,7 +321,7 @@ const DESTRUCT = "destruct";
         }
         // TODO cleanup, maintenance (?)
       if (gameData.isOver()) {
-        onGameEnd();
+        onGameEnd(gameData);
       }
        gameData.state.time = gameData.state.time + 1;
 
@@ -352,6 +363,8 @@ const DESTRUCT = "destruct";
       view.status.pcStatus = document.getElementById("pc-status");
       view.status.roomDescription = document.getElementById("room-description");
 
+      view.endgame = document.getElementById("endgame");
+
       // Validate
       validateView(view);
 
@@ -364,12 +377,13 @@ const DESTRUCT = "destruct";
         if (!subview) {
           throw Error("Empty view handle " + subview);
         }
-        for (let subkey in subview) {
-          let subsubview = subview[subkey];
-          if (!subsubview) {
-            throw Error("Empty subview handle " + subview);
-          }
-        }
+        // todo fucked
+        // for (let subkey in subview) {
+        //   let subsubview = subview[subkey];
+        //   if (!subsubview) {
+        //     throw Error("Empty subview handle " + subview);
+        //   }
+        // }
       }
 
       // TODO validate all screens in Screens exist
@@ -454,7 +468,6 @@ const DESTRUCT = "destruct";
                 view.menu.other.appendChild(newButton);
                 break;
             }
-
           }
         } // else busy
 
@@ -468,7 +481,7 @@ const DESTRUCT = "destruct";
         } else if (pc.hp > 0) {
           healthText = "wounded";
         } else if (!pc.isAlive()) {
-          healthText = "dead";
+          healthText = gameData.getString(Health.DEAD);
         } else {
           healthText = "drunk"; // this is a joke
         }
@@ -504,7 +517,7 @@ const DESTRUCT = "destruct";
         case Actions.MOVE:
           return action.target;
         case Actions.UNLOCK:
-          return "Unlock Grate"; // TODO localize?
+          return "Unlock Grate";
         case Actions.ATTACK:
           return "Attack " + action.target.id;
         case Actions.GET:
@@ -576,7 +589,85 @@ const DESTRUCT = "destruct";
       }
     }
 
-    function onGameEnd() {
+    function onGameEnd(gameData) {
+      let presenter = new Presenter(gameData.transient.view); // TODO no
+      let report = presenter.generateEndgameReport(gameData);
       nav(Screens.ENDGAME);
+    }
+
+    class Presenter {
+      constructor(view, vm) {
+        this.view = view;
+        this.viewModel = vm;
+      }
+
+      generateEndgameReport(gameData) {
+        let oxygen = gameData.getByCategoryId(CATEGORY_ALL, OXYGEN);
+        let destruct = gameData.getByCategoryId(CATEGORY_ALL, DESTRUCT);
+        let actors = valuesAsList(gameData.getCategoryMap(Category.ACTORS));
+        let maxScore = 1;
+
+        let noAir = oxygen && oxygen.count <= 0;
+        let destructTimer = destruct ? destruct.count : null;
+        let shipDestroyed = gameData.isShipDestroyed();
+        let aliensLiving = !gameData.getAll().every(actor =>
+          !actor.hostile || !actor.isAlive()) // TODO shuttle
+
+        let report = {
+          results:[],
+          actors:[],
+          score:{}
+        };
+
+        if (shipDestroyed) {
+          report.results.push("The ship has been destroyed.");
+        } else if (  destruct.activated) {
+          report.results.push("The ship will be destroyed.");
+        } else {
+          // TODO escaped
+          if (noAir) {
+            report.results.push("Oxygen reserves depleted.");
+          } else {
+            report.results.push("No human life signs deteceted.");
+          }
+
+          if (aliensLiving) {
+            report.results.push("The alien will reach Earth.");
+          }
+        }
+
+        for (let actor of actors) {
+          if (actor.isPc() && !actor.isAlive()) {
+            report.actors.push(actor.id + " is dead");
+          }
+        }
+
+        report.score = {
+          "score":aliensLiving ? 0 : 1,
+          "max":1
+        }
+
+        // populate
+        for (let result of report.results) {
+          let resultElem = document.createElement("p");
+          resultElem.innerHTML = result;
+          gameData.transient.view.endgame.appendChild(resultElem);
+        }
+
+        for (let actorResultText of report.actors) {
+          let actorElem = document.createElement("p");
+          actorElem.innerHTML = actorResultText;
+          gameData.transient.view.endgame.appendChild(actorElem);
+        }
+
+        let score = document.createElement("p");
+        score.innerHTML = "Score: " + (report.score.score / report.score.max) * 100 + "%";
+        gameData.transient.view.endgame.appendChild(score);
+        // TODO "New Game" button
+      }
+    }
+
+    class ViewModel {
+
     }
   </script>

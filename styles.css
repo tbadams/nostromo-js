@@ -69,6 +69,10 @@ body {
   color:#ff8800
 }
 
+#endgame {
+  text-align: center;
+}
+
 /* scrollbar */
 ::-webkit-scrollbar {
   width: 10px;

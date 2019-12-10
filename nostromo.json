@@ -578,7 +578,8 @@
         ],
         "damage":20,
         "inventory": 0,
-        "breathe":false
+        "breathe":false,
+        "hostile":true
       }
     },
     "rooms":{
@@ -697,5 +698,8 @@
         "floorChange": true
       }
     }
+  },
+  "strings":{
+    "dead":"dead"
   }
 }

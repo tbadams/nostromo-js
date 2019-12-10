@@ -48,7 +48,7 @@ class GameData {
   }
 
   getAll() {
-    return asList(this.getCategoryMap(CATEGORY_ALL));
+    return valuesAsList(this.getCategoryMap(CATEGORY_ALL));
   }
 
   getCategoryMap(category) {
@@ -78,6 +78,15 @@ class GameData {
 
   isOver() {
     return this.getPcs().filter(actor => actor.takesActions()).length === 0;
+  }
+
+  isShipDestroyed() {
+  return !valuesAsList(this.getCategoryMap(Category.ROOMS))
+        .every(shipRoom => !shipRoom.health || shipRoom.isAlive());
+  }
+
+  getString(key) {
+    return this.strings[key];
   }
 }
 
