@@ -648,26 +648,69 @@ const DESTRUCT = "destruct";
         }
 
         // populate
+        let lines = [];
         for (let result of report.results) {
           let resultElem = document.createElement("p");
           resultElem.innerHTML = result;
-          gameData.transient.view.endgame.appendChild(resultElem);
+          lines.push(new ElemDataPair(resultElem, result));
         }
 
         for (let actorResultText of report.actors) {
           let actorElem = document.createElement("p");
           actorElem.innerHTML = actorResultText;
-          gameData.transient.view.endgame.appendChild(actorElem);
+          lines.push(new ElemDataPair(actorElem, actorResultText));
         }
 
         let score = document.createElement("p");
-        score.innerHTML = "Score: " + (report.score.score / report.score.max) * 100 + "%";
-        gameData.transient.view.endgame.appendChild(score);
+        let scoreText = "Score: " + (report.score.score / report.score.max) * 100 + "%";
+        score.innerHTML = scoreText;
+        lines.push(new ElemDataPair(score, scoreText));
+
+        let elems = [];
+        let data = [];
+
+        for (let line of lines) {
+            elems.push(line.elem);
+            data.push(line.data);
+            gameData.transient.view.endgame.appendChild(line.elem);
+        }
         // TODO "New Game" button
+
+        animateTyping(elems, data, 25);
+      }
+    }
+
+    class ElemDataPair {
+      constructor(elem, data) {
+        this.elem = elem;
+        this.data = data;
       }
     }
 
     class ViewModel {
 
+    }
+
+    function animateTyping(elems, data, intervalMs) {
+      for (let elem of elems) {
+        elem.innerHTML = "";
+      }
+      animateTypingHelper(elems, data, 0, 0, intervalMs);
+    }
+
+    // takes corresponding lists html elements and data and types it out
+    function animateTypingHelper(elems, data, elemNum, charNum, intervalMs) {
+      if (elemNum < elems.length) {
+        let elem = elems[elemNum];
+        elem.innerHTML = data[elemNum].substring(0, charNum + 1);
+        charNum++;
+        if (charNum > data[elemNum].length) {
+          charNum = 0;
+          elemNum++;
+        }
+        setTimeout(function() {
+          animateTypingHelper(elems, data, elemNum, charNum, intervalMs);
+        }, intervalMs);
+      }
     }
   </script>
