@@ -134,11 +134,12 @@ class Action {
             out.push(action);
           }
         }
+
         if (room) {
           if(room.getItems() && actor.getItems().length < actor.inventory) {
             let items = room.getItems();
             for (let item of items) {
-              addIfSupported(new Action(Actions.GET, item, actor));
+              addIfSupported(new Action(Actions.GET, item, actor, 1));
             }
           }
           for (let doorId of room.doorIds) {
@@ -167,7 +168,7 @@ class Action {
           let items = actor.getItems();
           for (let item of items) {
             // addIfSupported(new Action(Actions.USE, item, actor));
-            addIfSupported(new Action(Actions.DROP, item, actor));
+            addIfSupported(new Action(Actions.DROP, item, actor, 1));
           }
         }
 
@@ -178,7 +179,10 @@ class Action {
           let specialsHere = room.getContained(Category.SPECIAL);
           for (let special of specialsHere) {
             if (special.floorAction) {
-              let action = new Action(Actions.ACTIVATE, special, actor, 1);
+              let target = special.floorAction.target ?
+                  gameData.getByCategoryId(CATEGORY_ALL, special.floorAction.target)
+                  : special;
+              let action = new Action(Actions.ACTIVATE, target, actor, 1);
               addIfSupported(action);
           }
         }
