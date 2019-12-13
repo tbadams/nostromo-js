@@ -631,9 +631,7 @@
       },
       "self-destruct": {
           "floorAction":{
-            "type":"activate",
-            "target":"self-destruct",
-            "duration":0
+            "type":"activate"
           },
           "ai":"count",
           "actions":[
