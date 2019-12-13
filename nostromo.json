@@ -499,6 +499,14 @@
         {"type":"Spanner"},
         {"type":"Electric Prod"}
       ]
+    },
+    {
+      "id":"shuttle",
+      "special":[
+        {
+          "type":"launch"
+        }
+      ]
     }
   ],
   "special": [
@@ -579,12 +587,14 @@
         "damage":20,
         "inventory": 0,
         "breathe":false,
-        "hostile":true
+        "hostile":true,
+        "acidBlood":5
       }
     },
     "rooms":{
       "default":{
-        "health":100
+        "health":100,
+        "ship":true
       }
     },
     "items": {
@@ -637,11 +647,15 @@
           "actions":[
             "count"
           ],
-          "count":300,
+          "count":3,
           "id":"destruct",
           "triggerEvent":{
             "effect":"kill",
             "selector":{
+              "is":{
+                "category":"rooms",
+                "ship":true
+              },
               "has":[
                 "health"
               ]
@@ -656,6 +670,23 @@
       },
       "toggle":{
         "floorAction":null
+      },
+      "launch":{
+        "id":"launch",
+        "floorAction":{
+          "type":"activate"
+        },
+        "triggerEvent":{
+          "effect":"set",
+          "params":{
+            "ship":false
+          },
+          "selector":{
+            "is":{
+              "id":"shuttle"
+            }
+          }
+        }
       },
       "airlock":{},
       "oxygen":{

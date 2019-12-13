@@ -218,10 +218,10 @@ class Action {
             let weapon = event.source;
             let targetWasAlive = target.isAlive();
             if (weapon) {
-              target.hp -= weapon.damage;
+              target.giveDamage(weapon.damage);
               effects.push({msg:target.id + " is being wounded."}); // TODO ??? not OK??
-              if(!weapon.nobleed) {
-                // TODO bleed
+              if(!weapon.nobleed && target.acidBlood) {
+                actorRoom.giveDamage(target.acidBlood);
               }
               if (targetWasAlive && !target.isAlive()) {
                 effects.push({msg: target.id + " has collapsed."});
@@ -480,7 +480,6 @@ class TypedClass {
       if (!originObject || !destinationObject) {
         throw Error("null participants in move");
       }
-      let moverCategory = this.category;
       if (!originObject.contains(this)) {
         throw Error ("move not at origin");
       }
@@ -488,6 +487,18 @@ class TypedClass {
       this.roomName = destinationObject.id;
       originObject.remove(this);
       destinationObject.insert(this);
+    }
+
+    giveDamage(damage) {
+      if (this.health) {
+        let prevHp = this.hp;
+        this.hp -= damage;
+        // TODO other notable thresholds
+        if (prevHp > 0 && this.hp <= 0 && this.onDeath) {
+          // died
+          this.onDeath()
+        }
+      }
     }
 }
 
@@ -533,7 +544,14 @@ class Room extends TypedClass {
       return out;
 
       //TODO dspecial and addDoora
-  }};
+  }
+
+  onDeath() {
+    for (let child of this.getContained(CATEGORY_ALL)) {
+      handleEffect(child, "kill");
+    }
+  }
+}
 
 class Door extends TypedClass {
     constructor(json, typeDefs, id) {
@@ -596,15 +614,18 @@ class Special extends TypedClass {
       }
       this.triggerEvent.selector = new Selector(this.triggerEvent.selector);
       // validate effect
-      handleEffect({}, this.triggerEvent.effect);
+      // handleEffect({}, this.triggerEvent.effect);
     }
   }
 
-  onActivated() {
+  onActivated(source, gameData) {
     this.activated = !this.activated;
     if (this.activated && this.hasOwnProperty("count")) {
       // Reset to starting count
       this.count = this.startCount;
+      // why, why am I doing this
+    } else {
+      this.onTrigger(gameData);
     }
   }
 
@@ -624,20 +645,21 @@ class Special extends TypedClass {
   onTrigger(gameData) {
     let selected = this.triggerEvent.selector.getVals(gameData);
     let effect = this.triggerEvent.effect;
+    let params = this.triggerEvent.params;
     for (let obj of selected) {
-      handleEffect(obj, effect);
+      handleEffect(obj, effect, params);
     }
   }
 }
 
 // TODO put somewhere
-function handleEffect(obj, effect) {
+function handleEffect(obj, effect, params) {
   switch (effect) {
     case "kill":
-      if (obj.hp) {
-        obj.hp = -10000;  // Ta-dah!! you're dead
-      }
+      obj.giveDamage(10000);
       break;
+    case "set":
+      Object.assign(obj, params);
     default:
       throw Error("Unhandled effect.");
   }
