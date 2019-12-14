@@ -7,3 +7,7 @@ function valuesAsList(enumeration){
   }
   return out;
 }
+
+function chooseRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}

@@ -304,7 +304,14 @@ const DESTRUCT = "destruct";
                 if (actor.ai != AI_PLAYER) {
                     // TODO Specific AIs
                     if (choices.length > 0) {
-                      Action.takeAction(actor, choices[Math.floor(Math.random() * choices.length)], gameData); // TODO Types
+                      let attacks = choices.filter(action => action.type === Actions.ATTACK);
+                      let action;
+                      if (attacks.length > 0) {
+                        action = chooseRandom(attacks);
+                      } else {
+                        action = chooseRandom(choices);
+                      }
+                      Action.takeAction(actor, action, gameData);
                     }
                 } else {
                      // TODO handle input
