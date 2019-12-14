@@ -630,7 +630,7 @@ class Special extends TypedClass {
       // Reset to starting count
       this.count = this.startCount;
       // why, why am I doing this
-    } else {
+    } else if (!this.hasOwnProperty("count")){
       this.onTrigger(gameData);
     }
   }
