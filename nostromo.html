@@ -481,7 +481,7 @@ const DESTRUCT = "destruct";
         // status
         let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
         view.status.roomName.innerHTML = room.id;
-        view.status.roomHealth.innerHTML = room.health + "%";
+        view.status.roomHealth.innerHTML = room.hp + "%";
         let healthText;
         if (pc.hp > pc.health / 2) {
           healthText = "OK";
