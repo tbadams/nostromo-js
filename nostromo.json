@@ -407,11 +407,54 @@
     },
     {
       "rooms": [
-        "corridor1 vent",
-        "corridor2 vent"
+        "corridor2 vent",
+        "corridor3 vent"
       ],"type":"vent"
-    }
-
+    },
+    {"rooms":["corridor3 vent", "corridor5 vent"], "type":"vent"},
+    {"rooms":["infirmary vent", "corridor3 vent"], "type":"vent"},
+    {"rooms":["lab vent", "corridor5 vent"], "type":"vent"},
+    {"rooms":["corridor5 vent", "corridor5"], "type":"grate"},
+    {"rooms":["corridor3", "corridor3 vent"], "type":"grate"},
+    {"rooms":["cryo lab", "cryo lab vent"], "type":"grate"},
+    {"rooms":["infirmary stores", "infirmary stores vent"], "type":"grate"},
+    {"rooms":["lab stores", "lab stores vent"], "type":"grate"},
+    {"rooms":["armory", "armory vent"], "type":"grate"},
+    {"rooms":["stores1", "stores1 vent"], "type":"grate"},
+    {"rooms":["corridor4", "corridor4 vent"], "type":"grate"},
+    {"rooms":["engine1","engine1 vent"], "type":"grate"},
+    {"rooms":["engine2","engine2 vent"], "type":"grate"},
+    {"rooms":["engine3","engine3 vent"], "type":"grate"},
+    {"rooms":["corridor3 vent", "infirmary stores vent"], "type":"vent"},
+    {"rooms":["infirmary stores vent", "armory vent"], "type":"vent"},
+    {"rooms":["armory vent", "corridor4 vent"], "type":"vent"},
+    {"rooms":["corridor4 vent","cryo lab vent" ], "type":"vent"},
+    {"rooms":["corridor4 vent", "engine2 vent"], "type":"vent"},
+    {"rooms":["engine2 vent", "engine1 vent"], "type":"vent"},
+    {"rooms":["engine2 vent", "engine3 vent"], "type":"vent"},
+    {"rooms":["engine2 vent", "computer vent"], "type":"vent"},
+    {"rooms":["corridor4 vent", "stores1 vent"], "type":"vent"},
+    {"rooms":["stores1 vent", "lab stores vent"], "type":"vent"},
+    {"rooms":["lab stores vent", "corridor5 vent"], "type":"vent"},
+    {"rooms":["living quarters", "living quarters vent"], "type":"grate"},
+    {"rooms":["recreation", "recreation vent"], "type":"grate"},
+    {"rooms":["mess", "mess vent"], "type":"grate"},
+    {"rooms":["airlock1", "airlock1 vent"], "type":"grate"},
+    {"rooms":["airlock2", "airlock2 vent"], "type":"grate"},
+    {"rooms":["corridor6", "corridor6 vent"], "type":"grate"},
+    {"rooms":["computer", "computer vent" ], "type":"grate"},
+    {"rooms":["stores2", "stores2 vent"], "type":"grate"},
+    {"rooms":["stores3", "stores3 vent"], "type":"grate"},
+    {"rooms":["recreation vent", "living quarters vent"], "type":"vent"},
+    {"rooms":["recreation vent", "airlock2 vent"], "type":"vent"},
+    {"rooms":["living quarters vent", "airlock1 vent"], "type":"vent"},
+    {"rooms":["airlock1 vent", "mess vent"], "type":"vent"},
+    {"rooms":["airlock2 vent", "mess vent"], "type":"vent"},
+    {"rooms":["airlock1 vent", "stores2 vent"], "type":"vent"},
+    {"rooms":["airlock2 vent", "stores3 vent"], "type":"vent"},
+    {"rooms":["mess vent", "corridor6 vent"], "type":"vent"},
+    {"rooms":["corridor6 vent", "stores2 vent"], "type":"vent"},
+    {"rooms":["corridor6 vent", "stores3 vent"], "type":"vent"}
   ],
   "rooms": [
     {
