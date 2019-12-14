@@ -647,7 +647,7 @@
           "actions":[
             "count"
           ],
-          "count":3,
+          "count":300,
           "id":"destruct",
           "triggerEvent":{
             "effect":"kill",

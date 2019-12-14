@@ -617,8 +617,17 @@ const DESTRUCT = "destruct";
         let noAir = oxygen && oxygen.count <= 0;
         let destructTimer = destruct ? destruct.count : null;
         let shipDestroyed = gameData.isShipDestroyed();
+
+        if (!shipDestroyed && destruct.activated) {
+          destruct.onTrigger(gameData); // Set it off now
+        }
+
         let aliensLiving = !gameData.getAll().every(actor =>
-          !actor.hostile || !actor.isAlive()) // TODO shuttle
+          !actor.hostile || !actor.isAlive()); // TODO shuttle
+        let livingPlayers = actors.filter(a => a.isPc() && a.isAlive());
+        let shuttleLaunched = !valuesAsList(gameData.getCategoryMap(Category.ROOMS))
+          .every(room => room.ship);
+
 
         let report = {
           results:[],
@@ -626,26 +635,31 @@ const DESTRUCT = "destruct";
           score:{}
         };
 
+        if (shuttleLaunched) {
+          report.results.push("The shuttle has been launched.");
+        }
+
         if (shipDestroyed) {
           report.results.push("The ship has been destroyed.");
-        } else if (  destruct.activated) {
-          report.results.push("The ship will be destroyed.");
-        } else {
-          // TODO escaped
-          if (noAir) {
+        } else if (noAir) {
             report.results.push("Oxygen reserves depleted.");
-          } else {
-            report.results.push("No human life signs deteceted.");
-          }
+        } else if (livingPlayers.length == 0){
+            report.results.push("No human life signs detected.");
+        }
 
-          if (aliensLiving) {
-            report.results.push("The alien will reach Earth.");
-          }
+        if (aliensLiving) {
+          report.results.push("The alien will reach Earth.");
+        } else {
+          report.results.push("The Alien was destroyed.");
         }
 
         for (let actor of actors) {
-          if (actor.isPc() && !actor.isAlive()) {
-            report.actors.push(actor.id + " is dead");
+          if (actor.isPc()) {
+            if (actor.isAlive()) {
+              report.actors.push(actor.id + " survived");
+            } else {
+              report.actors.push(actor.id + " is dead");
+            }
           }
         }
 

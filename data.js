@@ -77,7 +77,9 @@ class GameData {
   }
 
   isOver() {
-    return this.getPcs().filter(actor => actor.takesActions()).length === 0;
+    return this.getPcs().filter(actor => actor.takesActions()).length === 0
+    || !valuesAsList(this.getCategoryMap(Category.ROOMS)).every(room => room.ship);
+    // ship launched
   }
 
   isShipDestroyed() {
@@ -612,9 +614,13 @@ class Special extends TypedClass {
       } else if (!this.triggerEvent.selector || !this.triggerEvent.effect) {
         throw Error("triggerEvent without effect and selector")
       }
-      this.triggerEvent.selector = new Selector(this.triggerEvent.selector);
+
       // validate effect
       // handleEffect({}, this.triggerEvent.effect);
+    }
+
+    if (this.triggerEvent && this.triggerEvent.selector) {
+      this.triggerEvent.selector = new Selector(this.triggerEvent.selector);
     }
   }
 
@@ -660,6 +666,7 @@ function handleEffect(obj, effect, params) {
       break;
     case "set":
       Object.assign(obj, params);
+      break;
     default:
       throw Error("Unhandled effect.");
   }
