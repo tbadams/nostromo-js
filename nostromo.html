@@ -522,22 +522,22 @@ const DESTRUCT = "destruct";
       // TODO make consistent?
       switch(action.type) {
         case Actions.MOVE:
-          return action.target;
+          return action.targetId;
         case Actions.UNLOCK:
           return "Unlock Grate";
         case Actions.ATTACK:
-          return "Attack " + action.target.id;
+          return "Attack " + action.targetId;
         case Actions.GET:
-          return action.target.type;
+          return action.getTarget().type;
         case Actions.DROP:
-          return "Drop " + action.target.type;
+          return "Drop " + action.getTarget().type;
         case Actions.USE:
-          return "Use " + action.target.type;
+          return "Use " + action.getTarget().type;
         case Actions.CAPTURE:
-          return "Catch " + action.target.id;
+          return "Catch " + action.targetId;
         case Actions.ACTIVATE:
           // TODO special text
-          return "Activate " + action.target.type;
+          return "Activate " + action.getTarget().type;
         default:
           throw new Error("Unsupported action text: " + action.type);
       }
@@ -555,22 +555,22 @@ const DESTRUCT = "destruct";
 
         switch(type) {
           case Actions.MOVE:
-            return event.actor.id + " moved to " + event.target + ".";
+            return event.actorId + " moved to " + event.targetId + ".";
           case Actions.UNLOCK:
-            return event.actor.id + " unlocked " + event.target.id + ".";
+            return event.actorId + " unlocked " + event.targetId + ".";
           case Actions.ATTACK:
             // TODO passive voice?
-            return event.actor.id + " attacked " + event.target.id + ".";
+            return event.actorId + " attacked " + event.targetId + ".";
           case Actions.GET:
-            return event.actor.id + " picked up " + event.target.type + ".";
+            return event.actorId + " picked up " + event.getTarget().type + ".";
           case Actions.DROP:
-            return event.actor.id + " dropped " + event.target.type + ".";
+            return event.actorId + " dropped " + event.getTarget().type + ".";
           case Actions.USE:
-            return event.actor.id + " used " + event.target.type + ".";
+            return event.actorId + " used " + event.getTarget().type + ".";
           case Actions.CAPTURE:
-            return event.actor.id + " captured " + event.target.type + ".";
+            return event.actorId + " captured " + event.getTarget().type + ".";
           case Actions.ACTIVATE:
-            return event.actor.id + " activated " + event.target.type + ".";
+            return event.actorId + " activated " + event.getTarget().type + ".";
           case Actions.COUNT:
             return null;
           case Events.LOG:

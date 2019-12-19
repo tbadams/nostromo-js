@@ -68,7 +68,7 @@ class GameData {
   }
 
   isBusy(actorId) {
-    var busyActors = this.scheduler.toArray().map((a)=>a.actor.id); // TODO non-actors
+    var busyActors = this.scheduler.toArray().map((a)=>a.getActor().id);
     return busyActors.includes(actorId);
   }
 
@@ -95,8 +95,11 @@ class GameData {
 class Action {
     constructor(type, target, actor, duration, required) { // TODO swap target and actor
         this.type = type;
-        this.target = target;
-        this.actor = actor;
+        this.targetId = target != null ? target.id : null;
+        this.actorId = actor.id;
+        this.transient = {};
+        this.transient.actor = actor;
+        this.transient.target = target;
         if (!duration) {
           // TODO Something else
           this.duration = 5;
@@ -106,11 +109,19 @@ class Action {
 
         this.source = actor.getActionMap()[type];
 
-        for (let requirement of ["type", "actor"]) {
+        for (let requirement of ["type", "actorId"]) {
           if (!this[requirement]) {
-            throw new Error("field" + requirement + " must be non null for type Action");
+            throw new Error("field " + requirement + " must be non null for type Action");
           }
         }
+    }
+
+    getActor() {
+      return this.transient.actor;
+    }
+
+    getTarget() {
+      return this.transient.target;
     }
 
     static byType(actions) {
@@ -146,12 +157,12 @@ class Action {
           }
           for (let doorId of room.doorIds) {
             let door = gameData.getByCategoryId(Category.DOORS, doorId)
-              if (!door.locked) {
-                addIfSupported(new Action(Actions.MOVE, door.other(room.id), actor));
-              } else {
-                // TODO If actor supported
-                addIfSupported(new Action(Actions.UNLOCK, door, actor));
-              }
+            let otherRoom = gameData.getByCategoryId(Category.ROOMS, door.other(room.id));
+            if (!door.locked) {
+              addIfSupported(new Action(Actions.MOVE, otherRoom, actor));
+            } else {
+              addIfSupported(new Action(Actions.UNLOCK, door, actor));
+            }
           }
         }
 
@@ -181,8 +192,8 @@ class Action {
           let specialsHere = room.getContained(Category.SPECIAL);
           for (let special of specialsHere) {
             if (special.floorAction) {
-              let target = special.floorAction.target ?
-                  gameData.getByCategoryId(CATEGORY_ALL, special.floorAction.target)
+              let target = special.floorAction.targetId ?
+                  gameData.getByCategoryId(CATEGORY_ALL, special.floorAction.targetId)
                   : special;
               let action = new Action(Actions.ACTIVATE, target, actor, 1);
               addIfSupported(action);
@@ -207,12 +218,12 @@ class Action {
         event.observe(gameData);
 
         let effects = [];
-        let actor = event.actor; // cur. object
+        let actor = event.getActor(); // cur. object
         let actorRoom = gameData // TODO make room part of event?
-            .getByCategoryId(Category.ROOMS, event.actor.roomName);
-        let target = event.target;
+            .getByCategoryId(Category.ROOMS, actor.roomName);
+        let target = event.getTarget();
         if (event.type === Actions.MOVE) {
-            let targetRoom = gameData.getByCategoryId(Category.ROOMS, event.target);
+            let targetRoom = event.getTarget();
             actor.move(actorRoom, targetRoom);
         } else if (event.type === Actions.UNLOCK) {
             target.locked = false;
@@ -243,7 +254,7 @@ class Action {
         } else if (event.type === Actions.COUNT) {
           actor.increment(gameData);
         } else if (event.type === Actions.ACTIVATE) {
-          let targetObject =  event.target;
+          let targetObject =  event.getTarget();
           if (targetObject.onActivated) { // TODO and it's a function
             targetObject.onActivated(event.source, gameData);
           }
@@ -260,10 +271,10 @@ class Action {
 
 // Calculate actors witnessing this event, and provide front-end state.
     observe(gameData) {
-      let actor = this.actor; // cur. object
+      let actor = this.getActor(); // cur. object
       let actorRoom = gameData // TODO make room part of event?
           .getByCategoryId(Category.ROOMS, actor.roomName);
-      let target = this.target;
+      let target = this.getTarget();
 
       let observers = {};
       let scopes = [];
@@ -271,11 +282,10 @@ class Action {
         scopes.push(actorRoom);
       }
       if (this.type === Actions.MOVE) {
-        let targetRoom = gameData.getByCategoryId(Category.ROOMS, target);
-        if (!targetRoom) {
+        if (!target) {
           throw Error("Move with no destination");
         }
-        scopes.push(targetRoom);
+        scopes.push(target);
       }
 
       for (let scope of scopes) {
@@ -306,9 +316,9 @@ class Action {
     isValid(gameData) { // TODO must die
       if (!gameData) {throw new Error("NO MORE NULL GAMEDATA");}
 
-      let actor = this.actor; // object
+      let actor = this.getActor(); // object
       let actionMap = actor.getActionMap();
-      let target = this.target;
+      let target = this.getTarget();
 
       if (!actionMap[this.type]) {
         return false;
@@ -324,7 +334,7 @@ class Action {
         case Actions.MOVE: // target=roomName
           // TODO if refactor target to door, they're both in same room
           // TODO oh would also need to make rooms contain doors :-p
-          return actorRoom.getLinks(gameData).includes(target);
+          return actorRoom.getLinks(gameData).includes(target.id);
         case Actions.UNLOCK: // target=door object
           return target.rooms.includes(actor.roomName); // TODO refactor to room contains
         case Actions.ATTACK: // actor object
@@ -342,7 +352,7 @@ class Action {
           return (actorRoom.getItems().includes(target) || actor.getItems().includes(target))
               && target.isUsable();
         case Actions.ACTIVATE:
-          return actorRoom.getContained(Category.SPECIAL).includes(this.target);
+          return actorRoom.getContained(Category.SPECIAL).includes(this.getTarget());
         case Actions.COUNT:
         case Events.LOG:
           return true;
