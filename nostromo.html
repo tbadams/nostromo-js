@@ -553,6 +553,11 @@ const DESTRUCT = "destruct";
           return null;
         }
 
+        // Parse event payload data
+        if (event[EVENT_KEY_MISSED]) {
+          return event.actorId + " missed " + event.targetId + ".";
+        }
+
         switch(type) {
           case Actions.MOVE:
             return event.actorId + " moved to " + event.targetId + ".";

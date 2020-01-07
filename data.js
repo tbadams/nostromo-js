@@ -2,6 +2,10 @@
 
 const DEF_DEFAULT = "default";
 const DEF_TYPE = "type";
+const EVENT_KEY_MISSED = "missed";
+
+const CAT_CAPTURE_CHANCE = 0.20; // TODO move to Presenter
+const DEFAULT_ACTION_DURATION = 5;
 
 const Actions = {
   MOVE:"move",
@@ -112,8 +116,7 @@ class Action {
         this.transient.actor = actor;
         this.transient.target = target;
         if (!duration) {
-          // TODO Something else
-          this.duration = 5;
+          this.duration = DEFAULT_ACTION_DURATION;
         } else {
           this.duration = duration;
         }
@@ -256,10 +259,15 @@ class Action {
         } else if (event.type === Actions.DROP) {
           target.move(actor, actorRoom);
         } else if (event.type === Actions.CAPTURE) {
-          // TODO use .move()
-          event.source.captive = target;
-          target.roomName = VOID;
-          gameData.actors.splice(gameData.actors.indexOf(target));
+          let hit = Math.random() < CAT_CAPTURE_CHANCE;
+          if (hit) {
+            // TODO use .move()
+            event.source.captive = target;
+            target.roomName = VOID;
+            gameData.actors.splice(gameData.actors.indexOf(target));
+          } else {
+            event[EVENT_KEY_MISSED] = true;
+          }
         } else if (event.type === Actions.USE) {
           // TODO ...use it
         } else if (event.type === Actions.COUNT) {
