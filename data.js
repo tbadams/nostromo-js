@@ -72,6 +72,17 @@ class GameData {
     return busyActors.includes(actorId);
   }
 
+  getPendingAction(actorId) {
+    let actorsActions = this.scheduler.toArray().filter(a=>a.actorId === actorId);
+    if (actorsActions.length > 1) {
+      throw Error("Multiple pending actions for actor " + actorId);
+    }
+    if (actorsActions.length === 1) {
+      return actorsActions[0];
+    }
+    return null;
+  }
+
   isDebug() {
     return this.config && this.config.debug;
   }
