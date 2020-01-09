@@ -39,8 +39,7 @@ const Observed = {
 class GameData {
   constructor(json) {
     Object.assign(this, json);
-    this.transient = {};
-    this.transient.byId = {};
+    this.transient = {byId:{}};
     this.history = [];
   }
 
@@ -65,6 +64,15 @@ class GameData {
 
   getPcs() {
     return this.actors.filter(actor => actor.ai === AI_PLAYER);
+  }
+
+  selectPc(pcId) {
+    let pc = this.getByCategoryId(Category.ACTORS, pcId);
+    if (pc.ai === AI_PLAYER && pc.isAlive()) {
+      this.selected = pcId; // TODO rename selectedId
+    } else {
+      this.selected = null;
+    }
   }
 
   pcSelected() { // TODO selectedId
