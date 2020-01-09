@@ -139,7 +139,8 @@ const DESTRUCT = "destruct";
       init(gameData);
       initUi(gameData);
       setInterval(function () {
-          gameLoop(gameData);
+          gameData.gameLoop();
+          draw(gameData);
       }, TICK_LENGTH);
   });
 
@@ -269,65 +270,6 @@ const DESTRUCT = "destruct";
         // TODO
         throw new Error("Scheduler persistence not implemented");
       }
-  }
-
-// TODO move to data?
-  function gameLoop(gameData) {
-      if (gameData.isOver()) {
-        return;
-      }
-      var eventBus = []
-      var scheduler = gameData.scheduler;
-
-      // TODO copy gamedata
-      // Handle scheduled events
-      while (!scheduler.isEmpty() && scheduler.peek().time <= gameData.state.time) {
-          eventBus.push(scheduler.dequeue());
-      }
-      // check validity *before* resolving any Actions
-      eventBus = eventBus.filter(event=>event.isValid(gameData));
-      for (let event of eventBus) {
-          Action.handleAction(event, gameData);
-      }
-
-     // Queue new actions
-      for (let actor of gameData.getAll()) {
-        // not preoccupied doing something, like being dead or in a box
-          if (actor.takesActions() && !gameData.isBusy(actor.id)) {
-              var choices = Action.getChoices(actor, gameData);
-              // AI actionsgameData.getAll()
-              if (actor.ai != AI_PLAYER) {
-                  // TODO Specific AIs
-                  if (choices.length > 0) {
-                    let attacks = choices.filter(action => action.type === Actions.ATTACK);
-                    let action;
-                    if (attacks.length > 0) {
-                      action = chooseRandom(attacks);
-                    } else {
-                      action = chooseRandom(choices);
-                    }
-                    Action.takeAction(actor, action, gameData);
-                  }
-              } else {
-                   // TODO handle input
-              }
-          }
-      }
-
-      // cull newly invalid actions
-      let contents = scheduler.toArray();
-      contents = contents.filter((action)=>action.isValid(gameData));
-      scheduler.clear();
-      for(let action of contents) {
-        scheduler.add(action);
-      }
-      // TODO cleanup, maintenance (?)
-    if (gameData.isOver()) {
-      onGameEnd(gameData);
-    }
-     gameData.state.time = gameData.state.time + 1;
-
-     draw(gameData);
   }
 
   function initUi(gameData) {

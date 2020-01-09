@@ -43,6 +43,62 @@ class GameData {
     this.history = [];
   }
 
+  gameLoop() {
+      if (this.isOver()) {
+        return;
+      }
+      var eventBus = []
+      var scheduler = this.scheduler;
+
+      // TODO copy gamedata
+      // Handle scheduled events
+      while (!scheduler.isEmpty() && scheduler.peek().time <= this.state.time) {
+          eventBus.push(scheduler.dequeue());
+      }
+      // check validity *before* resolving any Actions
+      eventBus = eventBus.filter(event=>event.isValid(this));
+      for (let event of eventBus) {
+          Action.handleAction(event, this);
+      }
+
+     // Queue new actions
+      for (let actor of this.getAll()) {
+        // not preoccupied doing something, like being dead or in a box
+          if (actor.takesActions() && !this.isBusy(actor.id)) {
+              var choices = Action.getChoices(actor, this);
+              // AI actions
+              if (actor.ai != AI_PLAYER) {
+                  // TODO Specific AIs
+                  if (choices.length > 0) {
+                    let attacks = choices.filter(action => action.type === Actions.ATTACK);
+                    let action;
+                    if (attacks.length > 0) {
+                      action = chooseRandom(attacks);
+                    } else {
+                      action = chooseRandom(choices);
+                    }
+                    Action.takeAction(actor, action, this);
+                  }
+              } else {
+                   // TODO handle input
+              }
+          }
+      }
+
+      // cull newly invalid actions
+      let contents = scheduler.toArray();
+      contents = contents.filter((action)=>action.isValid(this));
+      scheduler.clear();
+      for(let action of contents) {
+        scheduler.add(action);
+      }
+      // TODO cleanup, maintenance (?)
+    if (this.isOver()) {
+      onGameEnd(this);
+    }
+     this.state.time = this.state.time + 1;
+  }
+
   getDefs(defType) {
     if(this.defs.hasOwnProperty(defType)) {
         return this.defs[defType];
