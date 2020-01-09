@@ -248,6 +248,7 @@ class Action {
               target.giveDamage(weapon.damage);
               effects.push({msg:target.id + " is being wounded."}); // TODO ??? not OK??
               if(!weapon.nobleed && target.acidBlood) {
+                // TODO log
                 actorRoom.giveDamage(target.acidBlood);
               }
               if (targetWasAlive && !target.isAlive()) {

@@ -53,7 +53,6 @@
 
 /*
 TODO:
-actions have speed
 split up json file
 counter start should delay 1 tick (to show 5:00 on bomb timer)
 isalive refactor
@@ -62,23 +61,18 @@ refine selectors
 miss chance
 wound logs (and miss) as seprate event
 show pending action
-acid blood
 all interobject refs through IDs, no references (Actions remain primarily)
 generic item action code
 ai system
-split htm and js
 get rid of event log space
 names, like characters -> pcs
 deep copy def obj (?)
 scopable event log
   different messages for diff scopes
 log to console?
-add 'config' object, mostly for debugging
-disable clicking on dead pc tab (?)
 upside down event log
 generate js signature docs
 map display
-finish map
 make movie accurate map
 make fan recreation accurate map
 json case insensitive?
@@ -118,625 +112,652 @@ const CATEGORY_ALL = "all";
 const OXYGEN = "oxygen";
 const DESTRUCT = "destruct";
 
-    loadJSON(function(response) {
-        let errorPattern = /(\d+).*/g;
-        var parsed;
-        try {
-          parsed = JSON.parse(response);
-        } catch (e) {
-          if (e instanceof SyntaxError) {
-            const grabRadius = 20;
-              let message = e.message;
-              let matched =  errorPattern.exec(message);
-              let pos = matched[1]; // 1st capture
-              if (pos) {
-                let min = Math.max(0, pos - grabRadius);
-                let max = Math.min(response.length - 1, pos + grabRadius);
-                let snippet = response.substring(min, pos)
-                    + ">HERE<" + response.substring(pos, max);
-                alert( 'Error loading game data JSON: ' + e + '\n\n' + snippet);
-              }
-          } else {
-            alert('Error: ' + e);
-          }
-          return;
+  loadJSON(function(response) {
+      let errorPattern = /(\d+).*/g;
+      var parsed;
+      try {
+        parsed = JSON.parse(response);
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          const grabRadius = 20;
+            let message = e.message;
+            let matched =  errorPattern.exec(message);
+            let pos = matched[1]; // 1st capture
+            if (pos) {
+              let min = Math.max(0, pos - grabRadius);
+              let max = Math.min(response.length - 1, pos + grabRadius);
+              let snippet = response.substring(min, pos)
+                  + ">HERE<" + response.substring(pos, max);
+              alert( 'Error loading game data JSON: ' + e + '\n\n' + snippet);
+            }
+        } else {
+          alert('Error: ' + e);
         }
-        var gameData = new GameData(parsed);
-        preInitTests(gameData);
-        init(gameData);
-        initUi(gameData);
-        setInterval(function () {
-            gameLoop(gameData);
-        }, TICK_LENGTH);
-    });
-
-    function preInitTests (gameData) {
-      let testResults = testAll();
-      let failed = testResults.filter(result=>!result.passed);
-
-      if (failed.length > 0) {
-        let report = "" + failed.length + " of " + testResults.length
-            + " tests failed:\n";
-        for (let result of failed) {
-          report += result.name + ":\n" + result.error.message + "\n\n";
-        }
-        alert(report);
+        return;
       }
+      var gameData = new GameData(parsed);
+      preInitTests(gameData);
+      init(gameData);
+      initUi(gameData);
+      setInterval(function () {
+          gameLoop(gameData);
+      }, TICK_LENGTH);
+  });
+
+  function preInitTests (gameData) {
+    let testResults = testAll();
+    let failed = testResults.filter(result=>!result.passed);
+
+    if (failed.length > 0) {
+      let report = "" + failed.length + " of " + testResults.length
+          + " tests failed:\n";
+      for (let result of failed) {
+        report += result.name + ":\n" + result.error.message + "\n\n";
+      }
+      alert(report);
     }
+  }
 
-    function init(gameData) {
-      if (!gameData.state) {
-        // Extra initialization for first ever run
-        gameData.state = {
-          time:0,
-          paused:false
+  function init(gameData) {
+    if (!gameData.state) {
+      // Extra initialization for first ever run
+      gameData.state = {
+        time:0,
+        paused:false
+      }
+      // Generate implied rooms from doors
+      // Get the list of door ids for every room
+      let roomDoorMap = {};
+      gameData.rooms.push({id: VOID, doorIds:[]}); // VOID room, for taking things out of level
+      for (let i in gameData.doors) {
+        gameData.doors[i] = new Door(gameData.doors[i], gameData.defs.doors, i);
+        let door = gameData.doors[i];
+        for (let roomName of door.rooms) {
+            if (!roomDoorMap.hasOwnProperty(roomName)) {
+                roomDoorMap[roomName] = {
+                  id:roomName,
+                    doorIds:[]
+                };
+            }
+            roomDoorMap[roomName].doorIds.push(door.id);
         }
-        // Generate implied rooms from doors
-        // Get the list of door ids for every room
-        let roomDoorMap = {};
-        gameData.rooms.push({id: VOID, doorIds:[]}); // VOID room, for taking things out of level
-        for (let i in gameData.doors) {
-          gameData.doors[i] = new Door(gameData.doors[i], gameData.defs.doors, i);
-          let door = gameData.doors[i];
-          for (let roomName of door.rooms) {
-              if (!roomDoorMap.hasOwnProperty(roomName)) {
-                  roomDoorMap[roomName] = {
-                    id:roomName,
-                      doorIds:[]
-                  };
-              }
-              roomDoorMap[roomName].doorIds.push(door.id);
-          }
+      }
+      // Assign door id lists to rooms that already exist
+      for (let room of gameData.rooms) {
+        if (roomDoorMap[room.id] && roomDoorMap[room.id].doorIds) {
+          room.doorIds = roomDoorMap[room.id].doorIds;
+          delete roomDoorMap[room.id];
         }
-        // Assign door id lists to rooms that already exist
-        for (let room of gameData.rooms) {
-          if (roomDoorMap[room.id] && roomDoorMap[room.id].doorIds) {
-            room.doorIds = roomDoorMap[room.id].doorIds;
-            delete roomDoorMap[room.id];
-          }
-        }
-        // Create remaining ("implied") ROOMS
-        for (let roomName in roomDoorMap) {
-          gameData.rooms.push(roomDoorMap[roomName]);
-        }
+      }
+      // Create remaining ("implied") ROOMS
+      for (let roomName in roomDoorMap) {
+        gameData.rooms.push(roomDoorMap[roomName]);
+      }
 
-        // Grab objects nested in others, extract to top level
-        for (let category of valuesAsList(Category)) {
-          let objects = gameData[category];
-          for (let object of objects) {
-            for (let category2 of valuesAsList(Category)){
-              if (!gameData[category2]) {
-                gameData[category2] = [];
+      // Grab objects nested in others, extract to top level
+      for (let category of valuesAsList(Category)) {
+        let objects = gameData[category];
+        for (let object of objects) {
+          for (let category2 of valuesAsList(Category)){
+            if (!gameData[category2]) {
+              gameData[category2] = [];
+            }
+            if (object[category2] && category2 != Category.ROOMS) { // nothing can contain rooms... yet
+              if (!object.id) {throw Error("no id");}
+              for ( let contained of object[category2]) {
+                contained.roomName = object.id; // TODO Generify
+                gameData[category2].push(contained);
               }
-              if (object[category2] && category2 != Category.ROOMS) { // nothing can contain rooms... yet
-                if (!object.id) {throw Error("no id");}
-                for ( let contained of object[category2]) {
-                  contained.roomName = object.id; // TODO Generify
-                  gameData[category2].push(contained);
-                }
-                delete object[category2];
-              }
+              delete object[category2];
             }
           }
         }
       }
+    }
 
-      // Actual game initialization
-      let lookupAll = {}
-      gameData.transient.byId.all = lookupAll;
+    // Actual game initialization
+    let lookupAll = {}
+    gameData.transient.byId.all = lookupAll;
 
-      for (let key in Category ) {
-        let category = Category[key];
-        let defs = gameData.defs[category];
-        let itemDefs = gameData.defs[Category.ITEMS];
-        let objects = gameData[category];
-        let lookup = {};
-        gameData.transient.byId[category] = lookup;
+    for (let key in Category ) {
+      let category = Category[key];
+      let defs = gameData.defs[category];
+      let itemDefs = gameData.defs[Category.ITEMS];
+      let objects = gameData[category];
+      let lookup = {};
+      gameData.transient.byId[category] = lookup;
 
-        for (let i in objects) { // Instantiation pass
-          objects[i] = TypedClass.create(category, objects[i], defs, i);
-          let object = objects[i];
-          if (lookup[object.id] || lookupAll[object.id]) {
-            throw Error("Dupe id " + object.id);
-          }
-          lookup[object.id] = object;
-          lookupAll[object.id] = object;
+      for (let i in objects) { // Instantiation pass
+        objects[i] = TypedClass.create(category, objects[i], defs, i);
+        let object = objects[i];
+        if (lookup[object.id] || lookupAll[object.id]) {
+          throw Error("Dupe id " + object.id);
         }
+        lookup[object.id] = object;
+        lookupAll[object.id] = object;
+      }
+    }
+
+      if (!validateMap(gameData)) {
+        throw Error("Map not connected.");
       }
 
-        // TODO check graph connected
-
-        // validate each contained has valid container, set up mem references
-        let all = gameData.transient.byId.all;
-        for (let i in all) {
-          let thing = all[i]
-          if (thing.roomName) { // TODO generify
-            if (!gameData.getByCategoryId(Category.ROOMS, thing.roomName)){
-               throw new Error("thing location <" + thing.roomName + "> does not exist");
-             } else {
-                // inform parent
-                let parent = all[thing.roomName];
-                let cat = thing.category;
-                if (!parent.transient[cat]) {
-                  parent.transient[cat] = [];
-                }
-                parent.transient[cat].push(thing);
-             }
+      // validate each contained has valid container, set up mem references
+      let all = gameData.transient.byId.all;
+      for (let i in all) {
+        let thing = all[i]
+        if (thing.roomName) { // TODO generify
+          if (!gameData.getByCategoryId(Category.ROOMS, thing.roomName)){
+             throw new Error("thing location <" + thing.roomName + "> does not exist");
+           } else {
+              // inform parent
+              let parent = all[thing.roomName];
+              let cat = thing.category;
+              if (!parent.transient[cat]) {
+                parent.transient[cat] = [];
+              }
+              parent.transient[cat].push(thing);
            }
-        }
+         }
+      }
 
-        if (!gameData.scheduler) {
-          gameData.scheduler = buckets.PriorityQueue(function(a, b){
-              // TODO unit test
-              return b.time - a.time;
-          });
-        } else {
-          // TODO
-          throw new Error("Scheduler persistence not implemented");
-        }
-    }
+      if (!gameData.scheduler) {
+        gameData.scheduler = buckets.PriorityQueue(function(a, b){
+            // TODO unit test
+            return b.time - a.time;
+        });
+      } else {
+        // TODO
+        throw new Error("Scheduler persistence not implemented");
+      }
+  }
 
 // TODO move to data?
-    function gameLoop(gameData) {
-        if (gameData.isOver()) {
-          return;
-        }
-        var eventBus = []
-        var scheduler = gameData.scheduler;
-
-        // TODO copy gamedata
-        // Handle scheduled events
-        while (!scheduler.isEmpty() && scheduler.peek().time <= gameData.state.time) {
-            eventBus.push(scheduler.dequeue());
-        }
-        // check validity *before* resolving any Actions
-        eventBus = eventBus.filter(event=>event.isValid(gameData));
-        for (let event of eventBus) {
-            Action.handleAction(event, gameData);
-        }
-
-       // Queue new actions
-        for (let actor of gameData.getAll()) {
-          // not preoccupied doing something, like being dead or in a box
-            if (actor.takesActions() && !gameData.isBusy(actor.id)) {
-                var choices = Action.getChoices(actor, gameData);
-                // AI actionsgameData.getAll()
-                if (actor.ai != AI_PLAYER) {
-                    // TODO Specific AIs
-                    if (choices.length > 0) {
-                      let attacks = choices.filter(action => action.type === Actions.ATTACK);
-                      let action;
-                      if (attacks.length > 0) {
-                        action = chooseRandom(attacks);
-                      } else {
-                        action = chooseRandom(choices);
-                      }
-                      Action.takeAction(actor, action, gameData);
-                    }
-                } else {
-                     // TODO handle input
-                }
-            }
-        }
-
-        // cull newly invalid actions
-        let contents = scheduler.toArray();
-        contents = contents.filter((action)=>action.isValid(gameData));
-        scheduler.clear();
-        for(let action of contents) {
-          scheduler.add(action);
-        }
-        // TODO cleanup, maintenance (?)
+  function gameLoop(gameData) {
       if (gameData.isOver()) {
-        onGameEnd(gameData);
+        return;
       }
-       gameData.state.time = gameData.state.time + 1;
+      var eventBus = []
+      var scheduler = gameData.scheduler;
 
-       draw(gameData);
-    }
-
-    function initUi(gameData) {
-      // Cache view
-      var view = {};
-      gameData.transient.view = view;
-      view.pcTabs = {};
-
-      // events
-      var events = {events : []};
-      view.events = events;
-
-      // character tabs
-      var charTabs = document.getElementById("characters");
-      for (let pc of gameData.getPcs()) {
-        var newButton = document.createElement("BUTTON");
-        newButton.innerHTML = pc.id;
-        newButton.onclick=function(){
-          selectPc(pc.id, gameData);
-          draw(gameData);
-        };
-        charTabs.appendChild(newButton);
-        view.pcTabs[pc.id] = newButton;
+      // TODO copy gamedata
+      // Handle scheduled events
+      while (!scheduler.isEmpty() && scheduler.peek().time <= gameData.state.time) {
+          eventBus.push(scheduler.dequeue());
+      }
+      // check validity *before* resolving any Actions
+      eventBus = eventBus.filter(event=>event.isValid(gameData));
+      for (let event of eventBus) {
+          Action.handleAction(event, gameData);
       }
 
-      view.menu = {};
-      view.menu.moves = document.getElementById(MOVE_ACTIONS);
-      view.menu.gets = document.getElementById(GET_ACTIONS);
-      view.menu.combat = document.getElementById(COMBAT_ACTIONS);
-      view.menu.other = document.getElementById(OTHER_ACTIONS);
-
-      view.status = {}
-      view.status.roomName = document.getElementById("room-name");
-      view.status.roomHealth = document.getElementById("room-health");
-      view.status.pcStatus = document.getElementById("pc-status");
-      view.status.roomDescription = document.getElementById("room-description");
-
-      view.endgame = document.getElementById("endgame");
-
-      // Validate
-      validateView(view);
-
-      nav(Screens.MAIN_SCREEN);
-    }
-
-    function validateView(view) {
-      for (let key in view) {
-        let subview = view[key];
-        if (!subview) {
-          throw Error("Empty view handle " + subview);
-        }
-        // todo fucked
-        // for (let subkey in subview) {
-        //   let subsubview = subview[subkey];
-        //   if (!subsubview) {
-        //     throw Error("Empty subview handle " + subview);
-        //   }
-        // }
-      }
-
-      // TODO validate all screens in Screens exist
-    }
-
-    function selectPc(pcId, gameData) {
-      let pc = gameData.getByCategoryId(Category.ACTORS, pcId);
-      if (pc.ai === AI_PLAYER && pc.isAlive()) {
-        gameData.selected = pcId; // TODO rename selectedId
-      } else {
-        gameData.selected = null;
-      }
-    }
-
-    function draw(gameData) {
-      var view = gameData.transient.view;
-
-      // Top bar
-      document.getElementById("time").innerHTML = ("Time:" + gameData.state.time);
-      let oxygen = gameData.getByCategoryId(CATEGORY_ALL, OXYGEN);
-      if (oxygen) {
-        let displayCount = Math.max(0, oxygen.count);
-        document.getElementById(OXYGEN).innerHTML = ("Oxygen:" + displayCount);
-      }
-      let destruct = gameData.getByCategoryId(CATEGORY_ALL, DESTRUCT);
-      if (destruct && destruct.activated) { // show only when counting down
-        // TODO account for tics vs seconds
-        document.getElementById(DESTRUCT).innerHTML =
-        "Self Destruct: " + timeFormat(destruct.count);
-      } else {
-        document.getElementById(DESTRUCT).innerHTML = "";
-      }
-
-      // PC tabs
-      for (let pcId in view.pcTabs) {
-        var tab = view.pcTabs[pcId];
-        if (gameData.selected === pcId) {
-          tab.style.color = "green";
-        } else {
-          tab.style.color = "black";
-        }
-
-        if (!gameData.getByCategoryId(Category.ACTORS, pcId).isAlive()) {
-          tab.style.color = "black";
-          tab.style.opacity = 0.6;
-        }
-      }
-
-      // menu & status
-      let menu = view.menu;
-      for(let subview in menu) {
-        emptyElem(menu[subview]);
-      }
-      let status = view.status;
-      for (let key in status) {
-        emptyElem(status[key]);
-      }
-      if(gameData.pcSelected()) {
-        var pc = gameData.getByCategoryId(Category.ACTORS, gameData.selected);
-        var choices = Action.getChoices(pc, gameData);
-        // Move actions
-
-        if (pc.isAlive() && !gameData.isBusy(pc.id)) {
-          for(let action of choices) {
-            var newButton = document.createElement("BUTTON");
-            newButton.innerHTML = getMenuText(action);
-            newButton.onclick=function(){
-              Action.takeAction(pc, action, gameData)
-              draw(gameData);
-            };
-            switch(action.type) {
-              case Actions.MOVE:
-                view.menu.moves.appendChild(newButton);
-                break;
-              case Actions.GET:
-                view.menu.gets.appendChild(newButton);
-                break;
-              case Actions.ATTACK:
-                view.menu.combat.appendChild(newButton);
-                break;
-              default:
-                view.menu.other.appendChild(newButton);
-                break;
-            }
+     // Queue new actions
+      for (let actor of gameData.getAll()) {
+        // not preoccupied doing something, like being dead or in a box
+          if (actor.takesActions() && !gameData.isBusy(actor.id)) {
+              var choices = Action.getChoices(actor, gameData);
+              // AI actionsgameData.getAll()
+              if (actor.ai != AI_PLAYER) {
+                  // TODO Specific AIs
+                  if (choices.length > 0) {
+                    let attacks = choices.filter(action => action.type === Actions.ATTACK);
+                    let action;
+                    if (attacks.length > 0) {
+                      action = chooseRandom(attacks);
+                    } else {
+                      action = chooseRandom(choices);
+                    }
+                    Action.takeAction(actor, action, gameData);
+                  }
+              } else {
+                   // TODO handle input
+              }
           }
-        } // else busy
+      }
 
-        // status
-        let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
-        view.status.roomName.innerHTML = room.id;
-        view.status.roomHealth.innerHTML = room.hp + "%";
-        let healthText;
-        if (pc.hp > pc.health / 2) {
-          healthText = "OK";
-        } else if (pc.hp > 0) {
-          healthText = "wounded";
-        } else if (!pc.isAlive()) {
-          healthText = gameData.getString(Health.DEAD);
-        } else {
-          healthText = "drunk"; // this is a joke
+      // cull newly invalid actions
+      let contents = scheduler.toArray();
+      contents = contents.filter((action)=>action.isValid(gameData));
+      scheduler.clear();
+      for(let action of contents) {
+        scheduler.add(action);
+      }
+      // TODO cleanup, maintenance (?)
+    if (gameData.isOver()) {
+      onGameEnd(gameData);
+    }
+     gameData.state.time = gameData.state.time + 1;
+
+     draw(gameData);
+  }
+
+  function initUi(gameData) {
+    // Cache view
+    var view = {};
+    gameData.transient.view = view;
+    view.pcTabs = {};
+
+    // events
+    var events = {events : []};
+    view.events = events;
+
+    // character tabs
+    var charTabs = document.getElementById("characters");
+    for (let pc of gameData.getPcs()) {
+      var newButton = document.createElement("BUTTON");
+      newButton.innerHTML = pc.id;
+      newButton.onclick=function(){
+        selectPc(pc.id, gameData);
+        draw(gameData);
+      };
+      charTabs.appendChild(newButton);
+      view.pcTabs[pc.id] = newButton;
+    }
+
+    view.menu = {};
+    view.menu.moves = document.getElementById(MOVE_ACTIONS);
+    view.menu.gets = document.getElementById(GET_ACTIONS);
+    view.menu.combat = document.getElementById(COMBAT_ACTIONS);
+    view.menu.other = document.getElementById(OTHER_ACTIONS);
+
+    view.status = {}
+    view.status.roomName = document.getElementById("room-name");
+    view.status.roomHealth = document.getElementById("room-health");
+    view.status.pcStatus = document.getElementById("pc-status");
+    view.status.roomDescription = document.getElementById("room-description");
+
+    view.endgame = document.getElementById("endgame");
+
+    // Validate
+    validateView(view);
+
+    nav(Screens.MAIN_SCREEN);
+  }
+
+  function validateView(view) {
+    for (let key in view) {
+      let subview = view[key];
+      if (!subview) {
+        throw Error("Empty view handle " + subview);
+      }
+      // todo fucked
+      // for (let subkey in subview) {
+      //   let subsubview = subview[subkey];
+      //   if (!subsubview) {
+      //     throw Error("Empty subview handle " + subview);
+      //   }
+      // }
+    }
+
+    // TODO validate all screens in Screens exist
+  }
+
+  function selectPc(pcId, gameData) {
+    let pc = gameData.getByCategoryId(Category.ACTORS, pcId);
+    if (pc.ai === AI_PLAYER && pc.isAlive()) {
+      gameData.selected = pcId; // TODO rename selectedId
+    } else {
+      gameData.selected = null;
+    }
+  }
+
+  function draw(gameData) {
+    var view = gameData.transient.view;
+
+    // Top bar
+    document.getElementById("time").innerHTML = ("Time:" + gameData.state.time);
+    let oxygen = gameData.getByCategoryId(CATEGORY_ALL, OXYGEN);
+    if (oxygen) {
+      let displayCount = Math.max(0, oxygen.count);
+      document.getElementById(OXYGEN).innerHTML = ("Oxygen:" + displayCount);
+    }
+    let destruct = gameData.getByCategoryId(CATEGORY_ALL, DESTRUCT);
+    if (destruct && destruct.activated) { // show only when counting down
+      // TODO account for tics vs seconds
+      document.getElementById(DESTRUCT).innerHTML =
+      "Self Destruct: " + timeFormat(destruct.count);
+    } else {
+      document.getElementById(DESTRUCT).innerHTML = "";
+    }
+
+    // PC tabs
+    for (let pcId in view.pcTabs) {
+      var tab = view.pcTabs[pcId];
+      if (gameData.selected === pcId) {
+        tab.style.color = "green";
+      } else {
+        tab.style.color = "black";
+      }
+
+      if (!gameData.getByCategoryId(Category.ACTORS, pcId).isAlive()) {
+        tab.style.color = "black";
+        tab.style.opacity = 0.6;
+      }
+    }
+
+    // menu & status
+    let menu = view.menu;
+    for(let subview in menu) {
+      emptyElem(menu[subview]);
+    }
+    let status = view.status;
+    for (let key in status) {
+      emptyElem(status[key]);
+    }
+    if(gameData.pcSelected()) {
+      var pc = gameData.getByCategoryId(Category.ACTORS, gameData.selected);
+      var choices = Action.getChoices(pc, gameData);
+      // Move actions
+
+      if (pc.isAlive() && !gameData.isBusy(pc.id)) {
+        for(let action of choices) {
+          var newButton = document.createElement("BUTTON");
+          newButton.innerHTML = getMenuText(action);
+          newButton.onclick=function(){
+            Action.takeAction(pc, action, gameData)
+            draw(gameData);
+          };
+          switch(action.type) {
+            case Actions.MOVE:
+              view.menu.moves.appendChild(newButton);
+              break;
+            case Actions.GET:
+              view.menu.gets.appendChild(newButton);
+              break;
+            case Actions.ATTACK:
+              view.menu.combat.appendChild(newButton);
+              break;
+            default:
+              view.menu.other.appendChild(newButton);
+              break;
+          }
         }
-        view.status.pcStatus.innerHTML = pc.id + " is " + healthText
-            + " and stable."
+      } // else busy
+
+      // status
+      let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
+      view.status.roomName.innerHTML = room.id;
+      view.status.roomHealth.innerHTML = room.hp + "%";
+      let healthText;
+      if (pc.hp > pc.health / 2) {
+        healthText = "OK";
+      } else if (pc.hp > 0) {
+        healthText = "wounded";
+      } else if (!pc.isAlive()) {
+        healthText = gameData.getString(Health.DEAD);
+      } else {
+        healthText = "drunk"; // this is a joke
       }
+      view.status.pcStatus.innerHTML = pc.id + " is " + healthText
+          + " and stable."
     }
+  }
 
-    function nav(screenName) {
-      let screens = document.getElementsByClassName(CLASS_SCREEN);
-      for (let screen of screens) {
-        screen.style.display = screen.id === screenName ? "block" : "none";
+  function nav(screenName) {
+    let screens = document.getElementsByClassName(CLASS_SCREEN);
+    for (let screen of screens) {
+      screen.style.display = screen.id === screenName ? "block" : "none";
+    }
+  }
+
+  function timeFormat(seconds) {
+    if (seconds < 0) {return "0:00";}
+    let min = Math.floor(seconds / 60);
+    let remainder = seconds % 60;
+    let secondsZero = remainder < 10 ? "0" : "";
+    return min + ":" + secondsZero + remainder;
+  }
+
+  function emptyElem(elem) {
+    while(elem.hasChildNodes()) {
+      elem.removeChild(elem.lastChild);
+    }
+  }
+
+  function getMenuText(action) {
+    // TODO make consistent?
+    switch(action.type) {
+      case Actions.MOVE:
+        return action.targetId;
+      case Actions.UNLOCK:
+        return "Unlock Grate";
+      case Actions.ATTACK:
+        return "Attack " + action.targetId;
+      case Actions.GET:
+        return action.getTarget().type;
+      case Actions.DROP:
+        return "Drop " + action.getTarget().type;
+      case Actions.USE:
+        return "Use " + action.getTarget().type;
+      case Actions.CAPTURE:
+        return "Catch " + action.targetId;
+      case Actions.ACTIVATE:
+        // TODO special text
+        return "Activate " + action.getTarget().type;
+      default:
+        throw new Error("Unsupported action text: " + action.type);
+    }
+  }
+
+  function getEventText(event, gameData) {
+      let type = event.type;
+      // TODO record payload, e.g. damage, increment, etc.
+      // TODO Generify, obvs
+
+      // Hide non-visible events
+      if (event.observed === Observed.NONE) { // TODO more flexible
+        return null;
       }
-    }
 
-    function timeFormat(seconds) {
-      if (seconds < 0) {return "0:00";}
-      let min = Math.floor(seconds / 60);
-      let remainder = seconds % 60;
-      let secondsZero = remainder < 10 ? "0" : "";
-      return min + ":" + secondsZero + remainder;
-    }
-
-    function emptyElem(elem) {
-      while(elem.hasChildNodes()) {
-        elem.removeChild(elem.lastChild);
+      // Parse event payload data
+      if (event[EVENT_KEY_MISSED]) {
+        return event.actorId + " missed " + event.targetId + ".";
       }
-    }
 
-    function getMenuText(action) {
-      // TODO make consistent?
-      switch(action.type) {
+      switch(type) {
         case Actions.MOVE:
-          return action.targetId;
+          return event.actorId + " moved to " + event.targetId + ".";
         case Actions.UNLOCK:
-          return "Unlock Grate";
+          return event.actorId + " unlocked " + event.targetId + ".";
         case Actions.ATTACK:
-          return "Attack " + action.targetId;
+          // TODO passive voice?
+          return event.actorId + " attacked " + event.targetId + ".";
         case Actions.GET:
-          return action.getTarget().type;
+          return event.actorId + " picked up " + event.getTarget().type + ".";
         case Actions.DROP:
-          return "Drop " + action.getTarget().type;
+          return event.actorId + " dropped " + event.getTarget().type + ".";
         case Actions.USE:
-          return "Use " + action.getTarget().type;
+          return event.actorId + " used " + event.getTarget().type + ".";
         case Actions.CAPTURE:
-          return "Catch " + action.targetId;
+          return event.actorId + " captured " + event.getTarget().type + ".";
         case Actions.ACTIVATE:
-          // TODO special text
-          return "Activate " + action.getTarget().type;
-        default:
-          throw new Error("Unsupported action text: " + action.type);
-      }
-    }
-
-    function getEventText(event, gameData) {
-        let type = event.type;
-        // TODO record payload, e.g. damage, increment, etc.
-        // TODO Generify, obvs
-
-        // Hide non-visible events
-        if (event.observed === Observed.NONE) { // TODO more flexible
+          return event.actorId + " activated " + event.getTarget().type + ".";
+        case Actions.COUNT:
           return null;
-        }
+        case Events.LOG:
+          // TODO debug flag
+          return "Log: " + target;
+      }
 
-        // Parse event payload data
-        if (event[EVENT_KEY_MISSED]) {
-          return event.actorId + " missed " + event.targetId + ".";
-        }
+      return "UNHANDLED EVENT:" + JSON.stringify(event);
+  }
 
-        switch(type) {
-          case Actions.MOVE:
-            return event.actorId + " moved to " + event.targetId + ".";
-          case Actions.UNLOCK:
-            return event.actorId + " unlocked " + event.targetId + ".";
-          case Actions.ATTACK:
-            // TODO passive voice?
-            return event.actorId + " attacked " + event.targetId + ".";
-          case Actions.GET:
-            return event.actorId + " picked up " + event.getTarget().type + ".";
-          case Actions.DROP:
-            return event.actorId + " dropped " + event.getTarget().type + ".";
-          case Actions.USE:
-            return event.actorId + " used " + event.getTarget().type + ".";
-          case Actions.CAPTURE:
-            return event.actorId + " captured " + event.getTarget().type + ".";
-          case Actions.ACTIVATE:
-            return event.actorId + " activated " + event.getTarget().type + ".";
-          case Actions.COUNT:
-            return null;
-          case Events.LOG:
-            // TODO debug flag
-            return "Log: " + target;
-        }
+  function log(event, gameData) {
+    let log = document.getElementById("events");
+    let eventText
+    if (event.msg) {
+      eventText = event.msg;
+    } else {
+      eventText = getEventText(event, gameData);
+    }
+    if (eventText) {
+      gameData.transient.view.events.events.push(eventText);
+      log.innerHTML = log.innerHTML + "<span class=\"event\">"
+          + eventText+ "</span><br/>";
+    }
+  }
 
-        return "UNHANDLED EVENT:" + JSON.stringify(event);
+  function onGameEnd(gameData) {
+    let presenter = new Presenter(gameData.transient.view); // TODO no
+    let report = presenter.generateEndgameReport(gameData);
+    nav(Screens.ENDGAME);
+  }
+
+  class Presenter {
+    constructor(view, vm) {
+      this.view = view;
+      this.viewModel = vm;
     }
 
-    function log(event, gameData) {
-      let log = document.getElementById("events");
-      let eventText
-      if (event.msg) {
-        eventText = event.msg;
+    generateEndgameReport(gameData) {
+      let oxygen = gameData.getByCategoryId(CATEGORY_ALL, OXYGEN);
+      let destruct = gameData.getByCategoryId(CATEGORY_ALL, DESTRUCT);
+      let actors = valuesAsList(gameData.getCategoryMap(Category.ACTORS));
+      let maxScore = 1;
+
+      let noAir = oxygen && oxygen.count <= 0;
+      let destructTimer = destruct ? destruct.count : null;
+      let shipDestroyed = gameData.isShipDestroyed();
+
+      if (!shipDestroyed && destruct.activated) {
+        destruct.onTrigger(gameData); // Set it off now
+      }
+
+      let aliensLiving = !gameData.getAll().every(actor =>
+        !actor.hostile || !actor.isAlive()); // TODO shuttle
+      let livingPlayers = actors.filter(a => a.isPc() && a.isAlive());
+      let shuttleLaunched = !valuesAsList(gameData.getCategoryMap(Category.ROOMS))
+        .every(room => room.ship);
+
+
+      let report = {
+        results:[],
+        actors:[],
+        score:{}
+      };
+
+      if (shuttleLaunched) {
+        report.results.push("The shuttle has been launched.");
+      }
+
+      if (shipDestroyed) {
+        report.results.push("The ship has been destroyed.");
+      } else if (noAir) {
+          report.results.push("Oxygen reserves depleted.");
+      } else if (livingPlayers.length == 0){
+          report.results.push("No human life signs detected.");
+      }
+
+      if (aliensLiving) {
+        report.results.push("The alien will reach Earth.");
       } else {
-        eventText = getEventText(event, gameData);
-      }
-      if (eventText) {
-        gameData.transient.view.events.events.push(eventText);
-        log.innerHTML = log.innerHTML + "<span class=\"event\">"
-            + eventText+ "</span><br/>";
-      }
-    }
-
-    function onGameEnd(gameData) {
-      let presenter = new Presenter(gameData.transient.view); // TODO no
-      let report = presenter.generateEndgameReport(gameData);
-      nav(Screens.ENDGAME);
-    }
-
-    class Presenter {
-      constructor(view, vm) {
-        this.view = view;
-        this.viewModel = vm;
+        report.results.push("The Alien was destroyed.");
       }
 
-      generateEndgameReport(gameData) {
-        let oxygen = gameData.getByCategoryId(CATEGORY_ALL, OXYGEN);
-        let destruct = gameData.getByCategoryId(CATEGORY_ALL, DESTRUCT);
-        let actors = valuesAsList(gameData.getCategoryMap(Category.ACTORS));
-        let maxScore = 1;
-
-        let noAir = oxygen && oxygen.count <= 0;
-        let destructTimer = destruct ? destruct.count : null;
-        let shipDestroyed = gameData.isShipDestroyed();
-
-        if (!shipDestroyed && destruct.activated) {
-          destruct.onTrigger(gameData); // Set it off now
-        }
-
-        let aliensLiving = !gameData.getAll().every(actor =>
-          !actor.hostile || !actor.isAlive()); // TODO shuttle
-        let livingPlayers = actors.filter(a => a.isPc() && a.isAlive());
-        let shuttleLaunched = !valuesAsList(gameData.getCategoryMap(Category.ROOMS))
-          .every(room => room.ship);
-
-
-        let report = {
-          results:[],
-          actors:[],
-          score:{}
-        };
-
-        if (shuttleLaunched) {
-          report.results.push("The shuttle has been launched.");
-        }
-
-        if (shipDestroyed) {
-          report.results.push("The ship has been destroyed.");
-        } else if (noAir) {
-            report.results.push("Oxygen reserves depleted.");
-        } else if (livingPlayers.length == 0){
-            report.results.push("No human life signs detected.");
-        }
-
-        if (aliensLiving) {
-          report.results.push("The alien will reach Earth.");
-        } else {
-          report.results.push("The Alien was destroyed.");
-        }
-
-        for (let actor of actors) {
-          if (actor.isPc()) {
-            if (actor.isAlive()) {
-              report.actors.push(actor.id + " survived");
-            } else {
-              report.actors.push(actor.id + " is dead");
-            }
+      for (let actor of actors) {
+        if (actor.isPc()) {
+          if (actor.isAlive()) {
+            report.actors.push(actor.id + " survived");
+          } else {
+            report.actors.push(actor.id + " is dead");
           }
         }
+      }
 
-        report.score = {
-          "score":aliensLiving ? 0 : 1,
-          "max":1
+      report.score = {
+        "score":aliensLiving ? 0 : 1,
+        "max":1
+      }
+
+      // populate
+      let lines = [];
+      for (let result of report.results) {
+        let resultElem = document.createElement("p");
+        resultElem.innerHTML = result;
+        lines.push(new ElemDataPair(resultElem, result));
+      }
+
+      for (let actorResultText of report.actors) {
+        let actorElem = document.createElement("p");
+        actorElem.innerHTML = actorResultText;
+        lines.push(new ElemDataPair(actorElem, actorResultText));
+      }
+
+      let score = document.createElement("p");
+      let scoreText = "Score: " + (report.score.score / report.score.max) * 100 + "%";
+      score.innerHTML = scoreText;
+      lines.push(new ElemDataPair(score, scoreText));
+
+      let elems = [];
+      let data = [];
+
+      for (let line of lines) {
+          elems.push(line.elem);
+          data.push(line.data);
+          gameData.transient.view.endgame.appendChild(line.elem);
+      }
+      // TODO "New Game" button
+
+      animateTyping(elems, data, 25);
+    }
+  }
+
+// Check for connectedness
+  function validateMap(gameData) {
+    let startRoom = gameData.rooms[0];
+    let visited = {};
+    let queue = [startRoom.id];
+    // BFS
+    while (queue.length > 0) {
+      let next = gameData.getByCategoryId(Category.ROOMS, queue[0]);
+      queue.shift()
+      for (let neighbor of next.getLinks(gameData)) {
+        if (!visited[neighbor]) {
+          queue.push(neighbor);
+          visited[neighbor] = true;
         }
-
-        // populate
-        let lines = [];
-        for (let result of report.results) {
-          let resultElem = document.createElement("p");
-          resultElem.innerHTML = result;
-          lines.push(new ElemDataPair(resultElem, result));
-        }
-
-        for (let actorResultText of report.actors) {
-          let actorElem = document.createElement("p");
-          actorElem.innerHTML = actorResultText;
-          lines.push(new ElemDataPair(actorElem, actorResultText));
-        }
-
-        let score = document.createElement("p");
-        let scoreText = "Score: " + (report.score.score / report.score.max) * 100 + "%";
-        score.innerHTML = scoreText;
-        lines.push(new ElemDataPair(score, scoreText));
-
-        let elems = [];
-        let data = [];
-
-        for (let line of lines) {
-            elems.push(line.elem);
-            data.push(line.data);
-            gameData.transient.view.endgame.appendChild(line.elem);
-        }
-        // TODO "New Game" button
-
-        animateTyping(elems, data, 25);
       }
     }
 
-    class ElemDataPair {
-      constructor(elem, data) {
-        this.elem = elem;
-        this.data = data;
+    for (let room of gameData.rooms) {
+      if (!visited[room.id] && room.id != VOID) {
+        return false;
       }
     }
+    return true;
+  }
 
-    class ViewModel {
-
+  class ElemDataPair {
+    constructor(elem, data) {
+      this.elem = elem;
+      this.data = data;
     }
+  }
 
-    function animateTyping(elems, data, intervalMs) {
-      for (let elem of elems) {
-        elem.innerHTML = "";
+  class ViewModel {
+
+  }
+
+  function animateTyping(elems, data, intervalMs) {
+    for (let elem of elems) {
+      elem.innerHTML = "";
+    }
+    animateTypingHelper(elems, data, 0, 0, intervalMs);
+  }
+
+  // takes corresponding lists html elements and data and types it out
+  function animateTypingHelper(elems, data, elemNum, charNum, intervalMs) {
+    if (elemNum < elems.length) {
+      let elem = elems[elemNum];
+      elem.innerHTML = data[elemNum].substring(0, charNum + 1);
+      charNum++;
+      if (charNum > data[elemNum].length) {
+        charNum = 0;
+        elemNum++;
       }
-      animateTypingHelper(elems, data, 0, 0, intervalMs);
+      setTimeout(function() {
+        animateTypingHelper(elems, data, elemNum, charNum, intervalMs);
+      }, intervalMs);
     }
-
-    // takes corresponding lists html elements and data and types it out
-    function animateTypingHelper(elems, data, elemNum, charNum, intervalMs) {
-      if (elemNum < elems.length) {
-        let elem = elems[elemNum];
-        elem.innerHTML = data[elemNum].substring(0, charNum + 1);
-        charNum++;
-        if (charNum > data[elemNum].length) {
-          charNum = 0;
-          elemNum++;
-        }
-        setTimeout(function() {
-          animateTypingHelper(elems, data, elemNum, charNum, intervalMs);
-        }, intervalMs);
-      }
-    }
-  </script>
+  }
+</script>
