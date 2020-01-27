@@ -345,10 +345,10 @@ class Action {
         } else {
           throw Error("undefined action " + event)
         }
-        log(event, gameData);
+        gameData.client.log(event, gameData);
         gameData.history.push(event);
         for (let effect of effects) {
-          log(effect, gameData);
+          gameData.client.log(effect, gameData);
           gameData.history.push(effect);
         }
     }

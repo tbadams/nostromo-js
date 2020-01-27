@@ -134,17 +134,18 @@ const DESTRUCT = "destruct";
         }
         return;
       }
-      var gameData = new GameData(parsed);
-      preInitTests(gameData);
+      let gameData = new GameData(parsed);
+      preInitTests();
       init(gameData);
-      initUi(gameData);
+      let client = new Client(gameData);
+      gameData.client = client;
       setInterval(function () {
           gameData.gameLoop();
-          draw(gameData);
+          client.draw(gameData);
       }, TICK_LENGTH);
   });
 
-  function preInitTests (gameData) {
+  function preInitTests () {
     let testResults = testAll();
     let failed = testResults.filter(result=>!result.passed);
 
@@ -215,7 +216,7 @@ const DESTRUCT = "destruct";
       }
     }
 
-    // Actual game initialization
+    // Instantiate data objects (add methods to them, mostly)
     let lookupAll = {}
     gameData.transient.byId.all = lookupAll;
 
@@ -238,7 +239,7 @@ const DESTRUCT = "destruct";
       }
     }
 
-      if (!validateMap(gameData)) {
+      if (!validateMap(gameData)) { // Finally check if map is valid
         throw Error("Map not connected.");
       }
 
@@ -261,6 +262,7 @@ const DESTRUCT = "destruct";
          }
       }
 
+      // Setup the action scheduler
       if (!gameData.scheduler) {
         gameData.scheduler = buckets.PriorityQueue(function(a, b){
             // TODO unit test
@@ -272,10 +274,12 @@ const DESTRUCT = "destruct";
       }
   }
 
-  function initUi(gameData) {
+  // class client
+class Client {
+  constructor(gameData) {
     // Cache view
     var view = {};
-    gameData.transient.view = view;
+    this.view = view;
     view.pcTabs = {};
 
     // events
@@ -286,10 +290,11 @@ const DESTRUCT = "destruct";
     var charTabs = document.getElementById("characters");
     for (let pc of gameData.getPcs()) {
       var newButton = document.createElement("BUTTON");
+      var that = this;
       newButton.innerHTML = pc.id;
       newButton.onclick=function(){
         gameData.selectPc(pc.id);
-        draw(gameData);
+        that.draw(gameData);
       };
       charTabs.appendChild(newButton);
       view.pcTabs[pc.id] = newButton;
@@ -310,12 +315,13 @@ const DESTRUCT = "destruct";
     view.endgame = document.getElementById("endgame");
 
     // Validate
-    validateView(view);
+    this.validateView(view);
 
-    nav(Screens.MAIN_SCREEN);
+    // First screen
+    this.nav(Screens.MAIN_SCREEN);
   }
 
-  function validateView(view) {
+  validateView(view) {
     for (let key in view) {
       let subview = view[key];
       if (!subview) {
@@ -333,8 +339,8 @@ const DESTRUCT = "destruct";
     // TODO validate all screens in Screens exist
   }
 
-  function draw(gameData) {
-    var view = gameData.transient.view;
+  draw(gameData) {
+    var view = this.view;
 
     // Top bar
     document.getElementById("time").innerHTML = ("Time:" + gameData.state.time);
@@ -347,7 +353,7 @@ const DESTRUCT = "destruct";
     if (destruct && destruct.activated) { // show only when counting down
       // TODO account for tics vs seconds
       document.getElementById(DESTRUCT).innerHTML =
-      "Self Destruct: " + timeFormat(destruct.count);
+      "Self Destruct: " + this.timeFormat(destruct.count);
     } else {
       document.getElementById(DESTRUCT).innerHTML = "";
     }
@@ -370,11 +376,11 @@ const DESTRUCT = "destruct";
     // menu & status
     let menu = view.menu;
     for(let subview in menu) {
-      emptyElem(menu[subview]);
+      this.emptyElem(menu[subview]);
     }
     let status = view.status;
     for (let key in status) {
-      emptyElem(status[key]);
+      this.emptyElem(status[key]);
     }
     if(gameData.pcSelected()) {
       var pc = gameData.getByCategoryId(Category.ACTORS, gameData.selected);
@@ -382,12 +388,13 @@ const DESTRUCT = "destruct";
       // Move actions
 
       if (pc.isAlive() && !gameData.isBusy(pc.id)) {
+        var that = this;
         for(let action of choices) {
           var newButton = document.createElement("BUTTON");
-          newButton.innerHTML = getMenuText(action);
+          newButton.innerHTML = this.getMenuText(action);
           newButton.onclick=function(){
             Action.takeAction(pc, action, gameData)
-            draw(gameData);
+            that.draw(gameData);
           };
           switch(action.type) {
             case Actions.MOVE:
@@ -404,7 +411,7 @@ const DESTRUCT = "destruct";
               break;
           }
         }
-      } // else busy
+      } // else actor is busy
 
       // status
       let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
@@ -425,14 +432,14 @@ const DESTRUCT = "destruct";
     }
   }
 
-  function nav(screenName) {
+  nav(screenName) {
     let screens = document.getElementsByClassName(CLASS_SCREEN);
     for (let screen of screens) {
       screen.style.display = screen.id === screenName ? "block" : "none";
     }
   }
 
-  function timeFormat(seconds) {
+  timeFormat(seconds) {
     if (seconds < 0) {return "0:00";}
     let min = Math.floor(seconds / 60);
     let remainder = seconds % 60;
@@ -440,13 +447,13 @@ const DESTRUCT = "destruct";
     return min + ":" + secondsZero + remainder;
   }
 
-  function emptyElem(elem) {
+  emptyElem(elem) {
     while(elem.hasChildNodes()) {
       elem.removeChild(elem.lastChild);
     }
   }
 
-  function getMenuText(action) {
+  getMenuText(action) {
     // TODO make consistent?
     switch(action.type) {
       case Actions.MOVE:
@@ -471,7 +478,7 @@ const DESTRUCT = "destruct";
     }
   }
 
-  function getEventText(event, gameData) {
+  getEventText(event, gameData) {
       let type = event.type;
       // TODO record payload, e.g. damage, increment, etc.
       // TODO Generify, obvs
@@ -514,25 +521,52 @@ const DESTRUCT = "destruct";
       return "UNHANDLED EVENT:" + JSON.stringify(event);
   }
 
-  function log(event, gameData) {
+  log(event, gameData) {
     let log = document.getElementById("events");
     let eventText
     if (event.msg) {
       eventText = event.msg;
     } else {
-      eventText = getEventText(event, gameData);
+      eventText = this.getEventText(event, gameData);
     }
     if (eventText) {
-      gameData.transient.view.events.events.push(eventText);
+      this.view.events.events.push(eventText);
       log.innerHTML = log.innerHTML + "<span class=\"event\">"
           + eventText+ "</span><br/>";
     }
   }
 
-  function onGameEnd(gameData) {
+  onGameEnd(gameData) {
     let presenter = new Presenter(gameData.transient.view); // TODO no
     let report = presenter.generateEndgameReport(gameData);
     nav(Screens.ENDGAME);
+  }
+}
+
+// Check for connectedness
+// TODO put somewhere
+  function validateMap(gameData) {
+    let startRoom = gameData.rooms[0];
+    let visited = {};
+    let queue = [startRoom.id];
+    // BFS
+    while (queue.length > 0) {
+      let next = gameData.getByCategoryId(Category.ROOMS, queue[0]);
+      queue.shift()
+      for (let neighbor of next.getLinks(gameData)) {
+        if (!visited[neighbor]) {
+          queue.push(neighbor);
+          visited[neighbor] = true;
+        }
+      }
+    }
+
+    for (let room of gameData.rooms) {
+      if (!visited[room.id] && room.id != VOID) {
+        return false;
+      }
+    }
+    return true;
   }
 
   class Presenter {
@@ -632,31 +666,29 @@ const DESTRUCT = "destruct";
 
       animateTyping(elems, data, 25);
     }
-  }
 
-// Check for connectedness
-  function validateMap(gameData) {
-    let startRoom = gameData.rooms[0];
-    let visited = {};
-    let queue = [startRoom.id];
-    // BFS
-    while (queue.length > 0) {
-      let next = gameData.getByCategoryId(Category.ROOMS, queue[0]);
-      queue.shift()
-      for (let neighbor of next.getLinks(gameData)) {
-        if (!visited[neighbor]) {
-          queue.push(neighbor);
-          visited[neighbor] = true;
+    animateTyping(elems, data, intervalMs) {
+      for (let elem of elems) {
+        elem.innerHTML = "";
+      }
+      animateTypingHelper(elems, data, 0, 0, intervalMs);
+    }
+
+    // takes corresponding lists html elements and data and types it out
+    animateTypingHelper(elems, data, elemNum, charNum, intervalMs) {
+      if (elemNum < elems.length) {
+        let elem = elems[elemNum];
+        elem.innerHTML = data[elemNum].substring(0, charNum + 1);
+        charNum++;
+        if (charNum > data[elemNum].length) {
+          charNum = 0;
+          elemNum++;
         }
+        setTimeout(function() {
+          animateTypingHelper(elems, data, elemNum, charNum, intervalMs);
+        }, intervalMs);
       }
     }
-
-    for (let room of gameData.rooms) {
-      if (!visited[room.id] && room.id != VOID) {
-        return false;
-      }
-    }
-    return true;
   }
 
   class ElemDataPair {
@@ -668,28 +700,5 @@ const DESTRUCT = "destruct";
 
   class ViewModel {
 
-  }
-
-  function animateTyping(elems, data, intervalMs) {
-    for (let elem of elems) {
-      elem.innerHTML = "";
-    }
-    animateTypingHelper(elems, data, 0, 0, intervalMs);
-  }
-
-  // takes corresponding lists html elements and data and types it out
-  function animateTypingHelper(elems, data, elemNum, charNum, intervalMs) {
-    if (elemNum < elems.length) {
-      let elem = elems[elemNum];
-      elem.innerHTML = data[elemNum].substring(0, charNum + 1);
-      charNum++;
-      if (charNum > data[elemNum].length) {
-        charNum = 0;
-        elemNum++;
-      }
-      setTimeout(function() {
-        animateTypingHelper(elems, data, elemNum, charNum, intervalMs);
-      }, intervalMs);
-    }
   }
 </script>
