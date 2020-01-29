@@ -166,6 +166,16 @@ class GameData {
         .every(shipRoom => !shipRoom.health || shipRoom.isAlive());
   }
 
+  queueAction(actor, action, gameData) {
+    if (action.isValid(gameData)) {
+      let speed = actor.speed ? actor.speed : 1;
+      action.time = gameData.state.time + (action.duration * speed);
+      gameData.scheduler.enqueue(action);
+    } else {
+      gameData.scheduler.enqueue(new Action(Events.LOG, "invalid action taken", 0));
+    }
+  }
+
   getString(key) {
     return this.strings[key];
   }
@@ -339,8 +349,15 @@ class Action {
           actor.increment(gameData);
         } else if (event.type === Actions.ACTIVATE) {
           let targetObject =  event.getTarget();
-          if (targetObject.onActivated) { // TODO and it's a function
-            targetObject.onActivated(event.source, gameData);
+          if (targetObject.hasOwnProperty("activated")) {
+            targetObject.activated = !targetObject.activated;
+            if (targetObject.activated && targetObject.hasOwnProperty("count")) {
+              // Reset to starting count
+              targetObject.count = targetObject.startCount;
+              // why, why am I doing this
+            } else if (!targetObject.hasOwnProperty("count")){
+              targetObject.onTrigger(gameData);
+            }
           }
         } else {
           throw Error("undefined action " + event)
@@ -715,17 +732,6 @@ class Special extends TypedClass {
 
     if (this.triggerEvent && this.triggerEvent.selector) {
       this.triggerEvent.selector = new Selector(this.triggerEvent.selector);
-    }
-  }
-
-  onActivated(source, gameData) {
-    this.activated = !this.activated;
-    if (this.activated && this.hasOwnProperty("count")) {
-      // Reset to starting count
-      this.count = this.startCount;
-      // why, why am I doing this
-    } else if (!this.hasOwnProperty("count")){
-      this.onTrigger(gameData);
     }
   }
 

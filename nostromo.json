@@ -555,9 +555,7 @@
   "special": [
     {
       "id":"airlock1-widget",
-      "roomName":"airlock1",
-      "toggledOn":false,
-      "onToggle":"airlock"
+      "roomName":"airlock1"
     },
     {
       "type":"oxygen",
