@@ -393,7 +393,7 @@ class Client {
           var newButton = document.createElement("BUTTON");
           newButton.innerHTML = this.getMenuText(action);
           newButton.onclick=function(){
-            Action.takeAction(pc, action, gameData)
+            gameData.queueAction(pc, action, gameData)
             that.draw(gameData);
           };
           switch(action.type) {

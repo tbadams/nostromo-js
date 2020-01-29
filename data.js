@@ -77,7 +77,7 @@ class GameData {
                     } else {
                       action = chooseRandom(choices);
                     }
-                    Action.takeAction(actor, action, this);
+                    this.queueAction(actor, action, this);
                   }
               } else {
                    // TODO handle input
@@ -212,20 +212,6 @@ class Action {
       return this.transient.target;
     }
 
-    static byType(actions) {
-      var aggregate = {};
-      for (let next of actions){
-        if (!next.hasOwnProperty(DEF_TYPE)) {
-          throw Error("Typeless action in byType()");
-        }
-        if(!aggregate.hasOwnProperty(next.type)) {
-          aggregate[next.type] = [];
-        }
-        aggregate[next.type].push(next);
-      }
-      return aggregate;
-    }
-
     static getChoices(actor, gameData) {
         let out = [];
         let room = gameData.getByCategoryId(Category.ROOMS, actor.roomName);
@@ -290,16 +276,6 @@ class Action {
       }
 
         return out;
-    }
-
-    static takeAction(actor, action, gameData) { // todo rename queue
-        if (action.isValid(gameData)) {
-          let speed = actor.speed ? actor.speed : 1;
-          action.time = gameData.state.time + (action.duration * speed);
-          gameData.scheduler.enqueue(action);
-        } else {
-          gameData.scheduler.enqueue(new Action(Events.LOG, "invalid action taken", 0));
-        }
     }
 
     static handleAction(event, gameData) {
