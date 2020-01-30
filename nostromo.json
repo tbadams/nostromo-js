@@ -605,7 +605,8 @@
           "get",
           "drop",
           "use",
-          "activate"]
+          "activate",
+          "enter"]
       },
       "human":{},
       "cat":{
@@ -706,7 +707,7 @@
       },
       "hypersleep": {
         "floorAction":{
-          "type":"activate"
+          "type":"enter"
         }
       },
       "toggle":{

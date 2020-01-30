@@ -13,10 +13,10 @@ const Actions = {
   ATTACK:"attack",
   GET:"get",
   DROP:"drop",
-  USE:"use",
   CAPTURE:"capture",  // TODO generic target action
   COUNT:"count",
-  ACTIVATE:"activate"
+  ACTIVATE:"activate",
+  ENTER: "enter"
 };
 const Events = {
   LOG:"log"
@@ -94,7 +94,7 @@ class GameData {
       }
       // TODO cleanup, maintenance (?)
     if (this.isOver()) {
-      onGameEnd(this);
+      this.client.onGameEnd(this);
     }
      this.state.time = this.state.time + 1;
   }
@@ -269,7 +269,8 @@ class Action {
               let target = special.floorAction.targetId ?
                   gameData.getByCategoryId(CATEGORY_ALL, special.floorAction.targetId)
                   : special;
-              let action = new Action(Actions.ACTIVATE, target, actor, 1);
+                let actionType = special.floorAction.type ? special.floorAction.type : Actions.ACTIVATE;
+              let action = new Action(actionType, target, actor, 1);
               addIfSupported(action);
           }
         }
@@ -309,6 +310,8 @@ class Action {
           target.move(actorRoom, actor);
         } else if (event.type === Actions.DROP) {
           target.move(actor, actorRoom);
+        } else if (event.type === Actions.ENTER) {
+          actor.move(actorRoom, target);
         } else if (event.type === Actions.CAPTURE) {
           let hit = Math.random() < CAT_CAPTURE_CHANCE;
           if (hit) {
@@ -319,8 +322,6 @@ class Action {
           } else {
             event[EVENT_KEY_MISSED] = true;
           }
-        } else if (event.type === Actions.USE) {
-          // TODO ...use it
         } else if (event.type === Actions.COUNT) {
           actor.increment(gameData);
         } else if (event.type === Actions.ACTIVATE) {
@@ -421,13 +422,12 @@ class Action {
           return actor.roomName === target.roomName
               && target.capturable && !actionMap[this.type].captive;
         case Actions.GET: // room item
-          return actorRoom.getItems().includes(target)
+          return actor.roomName === target.roomName
             && actor.getItems().length < actor.inventory;
         case Actions.DROP: // actor item
           return actor.getItems().includes(target);
-        case Actions.USE:
-          return (actorRoom.getItems().includes(target) || actor.getItems().includes(target))
-              && target.isUsable();
+        case Actions.ENTER:
+          return actor.roomName === target.roomName;
         case Actions.ACTIVATE:
           return actorRoom.getContained(Category.SPECIAL).includes(this.getTarget());
         case Actions.COUNT:
@@ -679,11 +679,6 @@ class Item extends TypedClass {
       this.actions.push(Actions.CAPTURE);
     }
 
-  }
-
-  isUsable() {
-    // weapons dpon't count
-    return tdocument.getElementById(DESTRUCT).innerHTML =his.actions.length > 0;
   }
 }
 

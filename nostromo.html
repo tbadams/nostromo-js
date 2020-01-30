@@ -415,9 +415,12 @@ class Client {
 
       // status
       let room = gameData.getByCategoryId(Category.ROOMS, pc.roomName);
-      view.status.roomName.innerHTML = room.id;
-      view.status.roomHealth.innerHTML = room.hp + "%";
+      if (room ){
+        view.status.roomName.innerHTML = room.id;
+        view.status.roomHealth.innerHTML = room.hp + "%";
+      }
       let healthText;
+      // TODO override for hypersleep
       if (pc.hp > pc.health / 2) {
         healthText = "OK";
       } else if (pc.hp > 0) {
@@ -473,6 +476,8 @@ class Client {
       case Actions.ACTIVATE:
         // TODO special text
         return "Activate " + action.getTarget().type;
+      case Actions.ENTER:
+        return "Enter hypersleep";
       default:
         throw new Error("Unsupported action text: " + action.type);
     }
@@ -511,6 +516,8 @@ class Client {
           return event.actorId + " captured " + event.getTarget().type + ".";
         case Actions.ACTIVATE:
           return event.actorId + " activated " + event.getTarget().type + ".";
+        case Actions.ENTER:
+          return event.actorId + " entered hypersleep."
         case Actions.COUNT:
           return null;
         case Events.LOG:
