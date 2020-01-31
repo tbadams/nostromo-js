@@ -546,7 +546,7 @@ class Client {
   onGameEnd(gameData) {
     let presenter = new Presenter(gameData.transient.view); // TODO no
     let report = presenter.generateEndgameReport(gameData);
-    nav(Screens.ENDGAME);
+    this.nav(Screens.ENDGAME);
   }
 }
 
@@ -667,18 +667,18 @@ class Client {
       for (let line of lines) {
           elems.push(line.elem);
           data.push(line.data);
-          gameData.transient.view.endgame.appendChild(line.elem);
+          gameData.client.view.endgame.appendChild(line.elem);
       }
       // TODO "New Game" button
 
-      animateTyping(elems, data, 25);
+      this.animateTyping(elems, data, 25);
     }
 
     animateTyping(elems, data, intervalMs) {
       for (let elem of elems) {
         elem.innerHTML = "";
       }
-      animateTypingHelper(elems, data, 0, 0, intervalMs);
+      this.animateTypingHelper(elems, data, 0, 0, intervalMs);
     }
 
     // takes corresponding lists html elements and data and types it out
@@ -692,7 +692,7 @@ class Client {
           elemNum++;
         }
         setTimeout(function() {
-          animateTypingHelper(elems, data, elemNum, charNum, intervalMs);
+          this.animateTypingHelper(elems, data, elemNum, charNum, intervalMs);
         }, intervalMs);
       }
     }
