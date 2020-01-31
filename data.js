@@ -14,7 +14,7 @@ const Actions = {
   GET:"get",
   DROP:"drop",
   CAPTURE:"capture",  // TODO generic target action
-  COUNT:"count",
+  TICK:"tick",
   ACTIVATE:"activate",
   ENTER: "enter"
 };
@@ -260,7 +260,7 @@ class Action {
         }
 
         // For logic actors
-        addIfSupported(new Action(Actions.COUNT, null, actor, 1));
+        addIfSupported(new Action(Actions.TICK, null, actor, 1));
 
         if (room) { // TODO deduplicate w/ above
           let specialsHere = room.getContained(Category.SPECIAL);
@@ -323,8 +323,9 @@ class Action {
           } else {
             event[EVENT_KEY_MISSED] = true;
           }
-        } else if (event.type === Actions.COUNT) {
-          actor.increment(gameData);
+          // TODO I think this was a mistake and special passives should not use the scheduler, lbh it's a hack
+        } else if (event.type === Actions.TICK) {
+          actor.tick(gameData);
         } else if (event.type === Actions.ACTIVATE) {
           let targetObject =  event.getTarget();
           if (targetObject.hasOwnProperty("activated")) {
@@ -431,7 +432,7 @@ class Action {
           return actor.roomName === target.roomName;
         case Actions.ACTIVATE:
           return actorRoom.getContained(Category.SPECIAL).includes(this.getTarget());
-        case Actions.COUNT:
+        case Actions.TICK:
         case Events.LOG:
           return true;
         default:
@@ -683,7 +684,6 @@ class Item extends TypedClass {
   }
 }
 
-// TODO "counter" amd "increment" but really counting down
 class Special extends TypedClass {
   constructor (json, typeDefs, id) {
     super(json, typeDefs, "special" + id);
@@ -707,15 +707,17 @@ class Special extends TypedClass {
     }
   }
 
-  increment(gameData) {
+  tick(gameData) { // passive action done every tick
     if (this.activated) {
-      let inc = this.incrementVal.getNum(gameData);
-      if (this.countMultiplier) {
-        inc = inc * this.countMultiplier;
-      }
-      this.count = this.count - inc;
-      if (this.count <= 0) {
-        this.onTrigger(gameData)
+      if (this.count) {
+        let inc = this.incrementVal.getNum(gameData);
+        if (this.countMultiplier) {
+          inc = inc * this.countMultiplier;
+        }
+        this.count = this.count - inc;
+        if (this.count <= 0) {
+          this.onTrigger(gameData)
+        }
       }
     }
   }

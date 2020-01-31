@@ -205,8 +205,24 @@
   ],
   "special": [
     {
-      "id":"airlock1-widget",
+      "id":"airlockHatch1",
+      "type":"airlockHatch",
       "roomName":"airlock1"
+    },
+    {
+      "id":"airlockHatch2",
+      "type":"airlockHatch",
+      "roomName":"airlock2"
+    },
+    {
+      "id":"airlock switch 1",
+      "roomName":"corridor6",
+      "floorAction":{"type":"activate", "targetId":"airlockHatch1"}
+    },
+    {
+      "id":"airlock switch 2",
+      "roomName":"corridor6",
+      "floorAction":{"type":"activate", "targetId":"airlockHatch2"}
     },
     {
       "type":"oxygen",
@@ -338,7 +354,7 @@
           },
           "ai":"count",
           "actions":[
-            "count"
+            "tick"
           ],
           "count":300,
           "id":"destruct",
@@ -361,9 +377,6 @@
           "type":"enter"
         }
       },
-      "toggle":{
-        "floorAction":null
-      },
       "launch":{
         "id":"launch",
         "floorAction":{
@@ -379,14 +392,20 @@
               "id":"shuttle"
             }
           }
-        }
+        },
+        "todo":"seriously, wtf is this bullshit"
       },
-      "airlock":{},
+      "airlockHatch":{
+        "activated":false,
+        "actions":[
+          "tick"
+        ]
+      },
       "oxygen":{
         "id":"oxygen",
         "ai":"count",
         "actions":[
-          "count"
+          "tick"
         ],
         "activated":true,
         "countMultiplier":2,

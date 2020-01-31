@@ -518,7 +518,7 @@ class Client {
           return event.actorId + " activated " + event.getTarget().type + ".";
         case Actions.ENTER:
           return event.actorId + " entered hypersleep."
-        case Actions.COUNT:
+        case Actions.TICK:
           return null;
         case Events.LOG:
           // TODO debug flag
@@ -691,7 +691,7 @@ class Client {
           charNum = 0;
           elemNum++;
         }
-        setTimeout(function() {
+        setTimeout(() => {
           this.animateTypingHelper(elems, data, elemNum, charNum, intervalMs);
         }, intervalMs);
       }
