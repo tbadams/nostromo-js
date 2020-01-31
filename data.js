@@ -312,6 +312,7 @@ class Action {
           target.move(actor, actorRoom);
         } else if (event.type === Actions.ENTER) {
           actor.move(actorRoom, target);
+          actor.breathe = false; // Remove if can ever leave hypersleep
         } else if (event.type === Actions.CAPTURE) {
           let hit = Math.random() < CAT_CAPTURE_CHANCE;
           if (hit) {
