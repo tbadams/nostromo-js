@@ -447,13 +447,13 @@ class TypedClass {
         // Assign characteristics hierarchically
         this.id = id; // Prefer id from data
         if (typeDefs.hasOwnProperty(DEF_DEFAULT)) {  // Type default
-            Object.assign(this, typeDefs[DEF_DEFAULT]);
+            mergeDeep(this, typeDefs[DEF_DEFAULT]);
             this.type = DEF_DEFAULT;
         }
         if (json.hasOwnProperty(DEF_TYPE)) { // Specific type
             var jsonType = json[DEF_TYPE];
             if (typeDefs.hasOwnProperty(jsonType)) {
-                Object.assign(this, typeDefs[jsonType]);
+                mergeDeep(this, typeDefs[jsonType]);
             } else {
                 throw Error("No defined type: " + jsonType);
             }
@@ -463,7 +463,7 @@ class TypedClass {
           this.hp = this.health;
         }
 
-        Object.assign(this, json); // Specific instance
+        mergeDeep(this, json); // Specific instance
         this.transient = {};
         // TODO generify into "supported children types" or something
         this.transient.items = [];
