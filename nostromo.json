@@ -231,17 +231,17 @@
   ],
   "actors": [
     {
-      "id": "Ripley",
+      "id": "Roby",
       "ai": "player",
       "roomName": "bridge"
     },
     {
-      "id": "Parker",
+      "id": "Hunter",
       "ai": "player",
       "roomName": "bridge"
     },
     {
-      "id": "Lambert",
+      "id": "Melkonis",
       "ai": "player",
       "roomName": "bridge"
     },
